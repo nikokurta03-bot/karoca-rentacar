@@ -159,9 +159,9 @@ export default function Home() {
           </div>
 
           <div className="nav-actions">
-            <a href="tel:+385991234567" className="nav-phone">
+            <a href="tel:+385991655885" className="nav-phone">
               <Phone size={18} />
-              <span>+385 99 123 4567</span>
+              <span>+385 99 165 5885</span>
             </a>
             <button className="btn btn-primary btn-nav">
               Rezerviraj
@@ -230,10 +230,9 @@ export default function Home() {
                   Preuzimanje
                 </label>
                 <select>
-                  <option>Zagreb - Zračna luka</option>
-                  <option>Zagreb - Centar</option>
-                  <option>Split - Zračna luka</option>
-                  <option>Dubrovnik - Zračna luka</option>
+                  <option>Zadar - Zračna luka</option>
+                  <option>Zadar - Centar</option>
+                  <option>Zadar - Autobusni kolodvor</option>
                 </select>
               </div>
 
@@ -404,7 +403,7 @@ export default function Home() {
               <button className="btn btn-primary btn-lg">
                 Rezerviraj sada
               </button>
-              <a href="tel:+385991234567" className="btn btn-secondary btn-lg">
+              <a href="tel:+385991655885" className="btn btn-secondary btn-lg">
                 <Phone size={20} />
                 Nazovite nas
               </a>
@@ -426,7 +425,7 @@ export default function Home() {
                   <Phone size={24} />
                   <div>
                     <strong>Telefon</strong>
-                    <span>+385 99 123 4567</span>
+                    <span>+385 99 165 5885</span>
                   </div>
                 </div>
                 <div className="contact-item">
@@ -440,7 +439,7 @@ export default function Home() {
                   <MapPin size={24} />
                   <div>
                     <strong>Adresa</strong>
-                    <span>Ilica 100, 10000 Zagreb</span>
+                    <span>Obala kneza Branimira 1, 23000 Zadar</span>
                   </div>
                 </div>
               </div>
