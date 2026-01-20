@@ -19,6 +19,16 @@ export interface Vehicle {
     rating: number
     available: boolean
     created_at: string
+    // Management fields
+    mileage: number
+    registration_expiry: string
+    kasko_expiry: string
+    last_service_date: string
+    tire_type: 'Ljetne' | 'Zimske'
+    tire_age: number
+    color: string
+    cleanliness: 'Oprano' | 'Neoprano'
+    vehicle_status: 'Spreman' | 'U najmu' | 'Servis'
 }
 
 export interface Booking {

@@ -12,7 +12,10 @@ import {
     Check,
     X,
     Loader2,
-    FileText
+    FileText,
+    Settings,
+    Save,
+    Edit2
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 
@@ -48,18 +51,30 @@ interface Vehicle {
     category: string
     price_per_day: number
     available: boolean
+    // Management fields
+    mileage?: number
+    registration_expiry?: string
+    kasko_expiry?: string
+    last_service_date?: string
+    tire_type?: 'Ljetne' | 'Zimske'
+    tire_age?: number
+    color?: string
+    cleanliness?: 'Oprano' | 'Neoprano'
+    vehicle_status?: 'Spreman' | 'U najmu' | 'Servis'
 }
 
 export default function AdminPage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
-    const [activeTab, setActiveTab] = useState<'bookings' | 'messages' | 'vehicles' | 'contract'>('bookings')
+    const [activeTab, setActiveTab] = useState<'bookings' | 'messages' | 'vehicles' | 'contract' | 'fleet'>('bookings')
     const [bookings, setBookings] = useState<Booking[]>([])
     const [messages, setMessages] = useState<ContactMessage[]>([])
     const [vehicles, setVehicles] = useState<Vehicle[]>([])
     const [loading, setLoading] = useState(false)
     const [generating, setGenerating] = useState(false)
+    const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
+    const [saving, setSaving] = useState(false)
 
     // Contract form state
     const [contractForm, setContractForm] = useState({
@@ -140,11 +155,34 @@ export default function AdminPage() {
         } else if (activeTab === 'messages') {
             const { data } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false })
             setMessages(data || [])
-        } else if (activeTab === 'vehicles' || activeTab === 'contract') {
+        } else if (activeTab === 'vehicles' || activeTab === 'contract' || activeTab === 'fleet') {
             const { data } = await supabase.from('vehicles').select('*').order('name')
             setVehicles(data || [])
         }
         setLoading(false)
+    }
+
+    const saveVehicle = async () => {
+        if (!selectedVehicle) return
+        setSaving(true)
+        const { error } = await supabase.from('vehicles').update({
+            mileage: selectedVehicle.mileage,
+            registration_expiry: selectedVehicle.registration_expiry,
+            kasko_expiry: selectedVehicle.kasko_expiry,
+            last_service_date: selectedVehicle.last_service_date,
+            tire_type: selectedVehicle.tire_type,
+            tire_age: selectedVehicle.tire_age,
+            color: selectedVehicle.color,
+            cleanliness: selectedVehicle.cleanliness,
+            vehicle_status: selectedVehicle.vehicle_status
+        }).eq('id', selectedVehicle.id)
+        if (error) {
+            alert('Greška pri spremanju!')
+        } else {
+            await fetchData()
+            setSelectedVehicle(null)
+        }
+        setSaving(false)
     }
 
     const updateBookingStatus = async (id: string, status: string) => {
@@ -421,6 +459,9 @@ export default function AdminPage() {
                     <button className={activeTab === 'contract' ? 'active' : ''} onClick={() => setActiveTab('contract')}>
                         <FileText size={18} /> Ugovor
                     </button>
+                    <button className={activeTab === 'fleet' ? 'active' : ''} onClick={() => setActiveTab('fleet')}>
+                        <Settings size={18} /> Flota
+                    </button>
                 </div>
                 <button className="logout-btn" onClick={handleLogout}>
                     <LogOut size={18} /> Odjava
@@ -492,7 +533,104 @@ export default function AdminPage() {
                             </tbody>
                         </table>
                     </div>
-                ) : (
+                ) : activeTab === 'fleet' ? (
+                    <div className="table-container">
+                        <h2><Settings size={20} /> Upravljanje flotom ({vehicles.length})</h2>
+
+                        {selectedVehicle ? (
+                            <div className="fleet-edit">
+                                <div className="fleet-edit-header">
+                                    <h3>Uređivanje: {selectedVehicle.name}</h3>
+                                    <button className="reset-btn" onClick={() => setSelectedVehicle(null)}>
+                                        <X size={16} /> Odustani
+                                    </button>
+                                </div>
+
+                                <div className="fleet-form-grid">
+                                    <div className="input-group">
+                                        <label>Kilometraža (km)</label>
+                                        <input type="number" value={selectedVehicle.mileage || 0} onChange={e => setSelectedVehicle({ ...selectedVehicle, mileage: Number(e.target.value) })} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Boja vozila</label>
+                                        <input type="text" value={selectedVehicle.color || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, color: e.target.value })} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Istek registracije</label>
+                                        <input type="date" value={selectedVehicle.registration_expiry || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, registration_expiry: e.target.value })} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Istek kaska</label>
+                                        <input type="date" value={selectedVehicle.kasko_expiry || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, kasko_expiry: e.target.value })} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Zadnji servis</label>
+                                        <input type="date" value={selectedVehicle.last_service_date || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, last_service_date: e.target.value })} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Gume</label>
+                                        <select value={selectedVehicle.tire_type || 'Ljetne'} onChange={e => setSelectedVehicle({ ...selectedVehicle, tire_type: e.target.value as 'Ljetne' | 'Zimske' })}>
+                                            <option>Ljetne</option>
+                                            <option>Zimske</option>
+                                        </select>
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Starost guma (mj)</label>
+                                        <input type="number" value={selectedVehicle.tire_age || 0} onChange={e => setSelectedVehicle({ ...selectedVehicle, tire_age: Number(e.target.value) })} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Čistoća</label>
+                                        <select value={selectedVehicle.cleanliness || 'Oprano'} onChange={e => setSelectedVehicle({ ...selectedVehicle, cleanliness: e.target.value as 'Oprano' | 'Neoprano' })}>
+                                            <option>Oprano</option>
+                                            <option>Neoprano</option>
+                                        </select>
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Status vozila</label>
+                                        <select value={selectedVehicle.vehicle_status || 'Spreman'} onChange={e => setSelectedVehicle({ ...selectedVehicle, vehicle_status: e.target.value as 'Spreman' | 'U najmu' | 'Servis' })}>
+                                            <option>Spreman</option>
+                                            <option>U najmu</option>
+                                            <option>Servis</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <button className="generate-btn" onClick={saveVehicle} disabled={saving}>
+                                    {saving ? <><Loader2 className="spin" size={18} /> Spremanje...</> : <><Save size={18} /> Spremi promjene</>}
+                                </button>
+                            </div>
+                        ) : (
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Vozilo</th>
+                                        <th>Km</th>
+                                        <th>Registracija</th>
+                                        <th>Kasko</th>
+                                        <th>Gume</th>
+                                        <th>Čistoća</th>
+                                        <th>Status</th>
+                                        <th>Akcije</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {vehicles.map((v) => (
+                                        <tr key={v.id}>
+                                            <td><strong>{v.name}</strong><br /><small style={{ color: '#888' }}>{v.color || '-'}</small></td>
+                                            <td>{v.mileage?.toLocaleString() || 0} km</td>
+                                            <td>{v.registration_expiry ? new Date(v.registration_expiry).toLocaleDateString('hr') : '-'}</td>
+                                            <td>{v.kasko_expiry ? new Date(v.kasko_expiry).toLocaleDateString('hr') : '-'}</td>
+                                            <td>{v.tire_type || '-'}</td>
+                                            <td><span className={`status ${v.cleanliness === 'Oprano' ? 'status-confirmed' : 'status-pending'}`}>{v.cleanliness || '-'}</span></td>
+                                            <td><span className={`status ${v.vehicle_status === 'Spreman' ? 'status-confirmed' : v.vehicle_status === 'U najmu' ? 'status-pending' : 'status-cancelled'}`}>{v.vehicle_status || '-'}</span></td>
+                                            <td><button className="btn-read" onClick={() => setSelectedVehicle(v)}><Edit2 size={14} /></button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                ) : activeTab === 'contract' ? (
                     <div className="contract-container">
                         <div className="contract-header">
                             <h2><FileText size={20} /> Novi ugovor o najmu</h2>
@@ -567,10 +705,11 @@ export default function AdminPage() {
                             {generating ? <><Loader2 className="spin" size={18} /> Generiranje...</> : <><FileText size={18} /> Generiraj PDF ugovor</>}
                         </button>
                     </div>
-                )}
+                ) : null}
             </main>
 
             <style jsx>{`
+
         .admin { min-height: 100vh; background: #0f0f1a; color: white; }
         .admin-nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: rgba(26, 26, 46, 0.9); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .nav-brand { font-size: 1.25rem; font-weight: 700; }
@@ -624,7 +763,18 @@ export default function AdminPage() {
         .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         @media (max-width: 1200px) { .contract-grid { grid-template-columns: 1fr; } }
         @media (max-width: 768px) { .nav-tabs { flex-wrap: wrap; } .form-grid { grid-template-columns: 1fr; } }
+        
+        /* Fleet Management */
+        .fleet-edit { background: rgba(255,255,255,0.03); border-radius: 16px; padding: 2rem; }
+        .fleet-edit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .fleet-edit-header h3 { font-size: 1.25rem; color: white; }
+        .fleet-form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+        .fleet-form-grid .input-group input, .fleet-form-grid .input-group select { padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; font-size: 0.9rem; width: 100%; }
+        .fleet-form-grid .input-group input:focus, .fleet-form-grid .input-group select:focus { outline: none; border-color: #e94560; }
+        @media (max-width: 1024px) { .fleet-form-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .fleet-form-grid { grid-template-columns: 1fr; } }
       `}</style>
-        </div>
+
+        </div >
     )
 }
