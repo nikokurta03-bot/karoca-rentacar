@@ -1193,26 +1193,20 @@ export default function Home() {
         
         .vehicle-image {
           background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
-          padding: 2rem;
           text-align: center;
           position: relative;
+          height: 180px;
+          overflow: hidden;
         }
         
         .vehicle-emoji {
           font-size: 5rem;
+          padding-top: 2rem;
         }
         .vehicle-img {
           width: 100%;
-          height: 180px;
+          height: 100%;
           object-fit: cover;
-          border-radius: 12px 12px 0 0;
-          position: absolute;
-          top: 0;
-          left: 0;
-        }
-        .vehicle-image {
-          height: 180px;
-          overflow: hidden;
         }
         
 
