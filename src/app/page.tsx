@@ -306,13 +306,24 @@ export default function Home() {
               <button
                 className="btn btn-primary btn-book"
                 onClick={() => {
-                  document.getElementById('vozila')?.scrollIntoView({ behavior: 'smooth' })
+                  if (!bookingDates.from || !bookingDates.to) {
+                    alert('Molimo odaberite datume preuzimanja i povrata.')
+                    return
+                  }
+                  // Open modal with first available vehicle or show vehicle picker
+                  if (vehicles.length > 0) {
+                    setSelectedVehicle(vehicles[0])
+                    setBookingStep(1)
+                    setSelectedExtras([])
+                    setBookingModal(true)
+                  }
                 }}
               >
                 Pretraži vozila
                 <ChevronRight size={20} />
               </button>
             </div>
+
 
           </div>
         </div>
