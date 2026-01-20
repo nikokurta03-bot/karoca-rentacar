@@ -84,7 +84,8 @@ export default function AdminPage() {
         totalPrice: 65,
         deposit: 200,
         paymentMethod: 'Gotovina',
-        notes: ''
+        notes: '',
+        agentName: '' // Novi field
     })
 
     const handleLogin = (e: React.FormEvent) => {
@@ -182,70 +183,187 @@ export default function AdminPage() {
         setGenerating(true)
         const doc = new jsPDF()
         const vehicle = vehicles.find(v => v.id === contractForm.vehicleId)
-        const today = new Date().toLocaleDateString('hr')
+        const today = new Date().toLocaleDateString('hr-HR')
+        const contractNumber = `KRC-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`
 
-        doc.setFontSize(20)
+        // ============ PAGE 1 ============
+        // Header
+        doc.setFontSize(22)
+        doc.setFont('helvetica', 'bold')
         doc.text('KAROCA RENT A CAR', 105, 20, { align: 'center' })
-        doc.setFontSize(12)
-        doc.text('Obala kneza Branimira 1, 23000 Zadar', 105, 28, { align: 'center' })
-        doc.text('Tel: +385 99 165 5885 | Email: info@karoca.hr', 105, 35, { align: 'center' })
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'normal')
+        doc.text('Obala kneza Branimira 1, 23000 Zadar, Hrvatska', 105, 27, { align: 'center' })
+        doc.text('Tel: +385 99 165 5885 | Email: info@karoca.hr | OIB: 12345678901', 105, 33, { align: 'center' })
 
+        doc.setLineWidth(0.5)
+        doc.line(20, 38, 190, 38)
+
+        // Title
         doc.setFontSize(16)
-        doc.text('UGOVOR O NAJMU VOZILA', 105, 50, { align: 'center' })
+        doc.setFont('helvetica', 'bold')
+        doc.text('UGOVOR O NAJMU MOTORNOG VOZILA', 105, 48, { align: 'center' })
 
         doc.setFontSize(10)
-        doc.text(`Datum: ${today}`, 20, 60)
-        doc.text(`Broj ugovora: KRC-${Date.now().toString().slice(-6)}`, 140, 60)
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Broj ugovora: ${contractNumber}`, 20, 56)
+        doc.text(`Datum sklapanja: ${today}`, 140, 56)
+        doc.text(`Mjesto sklapanja: Zadar`, 20, 62)
 
-        doc.setFontSize(12)
-        doc.text('PODACI O NAJMOPRIMCU:', 20, 75)
-        doc.setFontSize(10)
-        doc.text(`Ime i prezime: ${contractForm.driverName}`, 20, 85)
-        doc.text(`Adresa: ${contractForm.driverAddress}, ${contractForm.driverCity}, ${contractForm.driverCountry}`, 20, 92)
-        doc.text(`OIB: ${contractForm.driverOIB}`, 20, 99)
-        doc.text(`Telefon: ${contractForm.driverPhone}`, 20, 106)
-        doc.text(`Email: ${contractForm.driverEmail}`, 20, 113)
-        doc.text(`Vozacka dozvola: ${contractForm.driverLicenseNumber} (vrijedi do: ${contractForm.driverLicenseExpiry})`, 20, 120)
-        doc.text(`Putovnica/Osobna: ${contractForm.driverPassportNumber}`, 20, 127)
+        // Article 1 - Parties
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Clanak 1. UGOVORNE STRANE', 20, 72)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.text('NAJMODAVAC: KAROCA RENT A CAR, Obala kneza Branimira 1, 23000 Zadar, OIB: 12345678901', 20, 79)
+        doc.text('NAJMOPRIMAC:', 20, 86)
+        doc.text(`   Ime i prezime: ${contractForm.driverName}`, 20, 92)
+        doc.text(`   Adresa: ${contractForm.driverAddress}, ${contractForm.driverCity}, ${contractForm.driverCountry}`, 20, 98)
+        doc.text(`   OIB: ${contractForm.driverOIB}                    Telefon: ${contractForm.driverPhone}`, 20, 104)
+        doc.text(`   Email: ${contractForm.driverEmail}`, 20, 110)
+        doc.text(`   Vozacka dozvola br.: ${contractForm.driverLicenseNumber}     Vrijedi do: ${contractForm.driverLicenseExpiry}`, 20, 116)
+        doc.text(`   Osobna iskaznica / Putovnica br.: ${contractForm.driverPassportNumber}`, 20, 122)
 
-        doc.setFontSize(12)
-        doc.text('PODACI O VOZILU:', 20, 142)
-        doc.setFontSize(10)
-        doc.text(`Vozilo: ${vehicle?.name || '-'}`, 20, 152)
-        doc.text(`Lokacija preuzimanja: ${contractForm.pickupLocation}`, 20, 159)
-        doc.text(`Preuzimanje: ${contractForm.pickupDate} u ${contractForm.pickupTime}`, 20, 166)
-        doc.text(`Povrat: ${contractForm.returnDate} u ${contractForm.returnTime}`, 20, 173)
+        // Article 2 - Vehicle
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Clanak 2. PREDMET UGOVORA - VOZILO', 20, 132)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Marka i model: ${vehicle?.name || '-'}`, 20, 139)
+        doc.text(`Registracijska oznaka: ZD-XXX-XX`, 20, 145)
+        doc.text(`Stanje kilometara pri preuzimanju: _____________ km`, 20, 151)
+        doc.text(`Stanje goriva pri preuzimanju: PUNO / 3/4 / 1/2 / 1/4   (zaokruziti)`, 20, 157)
+        doc.text(`Vozilo se preuzima u tehnicki ispravnom stanju bez vidljivih ostecenja, osim:`, 20, 163)
+        doc.text(`_____________________________________________________________________________`, 20, 169)
 
-        doc.setFontSize(12)
-        doc.text('CIJENA NAJMA:', 20, 188)
-        doc.setFontSize(10)
-        doc.text(`Cijena po danu: ${contractForm.pricePerDay} EUR`, 20, 198)
-        doc.text(`Broj dana: ${contractForm.totalDays}`, 20, 205)
-        doc.text(`UKUPNO: ${contractForm.totalPrice} EUR`, 20, 212)
-        doc.text(`Polog: ${contractForm.deposit} EUR`, 20, 219)
-        doc.text(`Nacin placanja: ${contractForm.paymentMethod}`, 20, 226)
+        // Article 3 - Rental Period
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Clanak 3. TRAJANJE NAJMA', 20, 179)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Lokacija preuzimanja: ${contractForm.pickupLocation}`, 20, 186)
+        doc.text(`Datum i vrijeme preuzimanja: ${contractForm.pickupDate} u ${contractForm.pickupTime} sati`, 20, 192)
+        doc.text(`Lokacija povrata: ${contractForm.pickupLocation}`, 20, 198)
+        doc.text(`Datum i vrijeme povrata: ${contractForm.returnDate} u ${contractForm.returnTime} sati`, 20, 204)
+        doc.text(`Ukupno dana najma: ${contractForm.totalDays}`, 20, 210)
 
-        doc.setFontSize(12)
-        doc.text('UVJETI NAJMA:', 20, 241)
+        // Article 4 - Price
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Clanak 4. CIJENA I NACIN PLACANJA', 20, 220)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Cijena najma po danu: ${contractForm.pricePerDay},00 EUR`, 20, 227)
+        doc.text(`Ukupna cijena najma (${contractForm.totalDays} dana x ${contractForm.pricePerDay} EUR): ${contractForm.totalPrice},00 EUR`, 20, 233)
+        doc.text(`Polog (jamcevina): ${contractForm.deposit},00 EUR`, 20, 239)
+        doc.text(`Nacin placanja: ${contractForm.paymentMethod}`, 20, 245)
+        doc.text(`Polog se vraca najmoprimcu po povratu vozila u neostecenomu stanju.`, 20, 251)
+
+        // Footer page 1
         doc.setFontSize(8)
-        const uvjeti = [
-            '1. Najmoprimac se obvezuje vratiti vozilo u istom stanju u kojem ga je preuzeo.',
-            '2. Gorivo: Vozilo se preuzima i vraca s punim spremnikom goriva.',
-            '3. Kilometraza: Neograniceno.',
-            '4. Osiguranje: Vozilo je osigurano od automobilske odgovornosti.',
-            '5. Polog se vraca po povratu vozila bez ostecenja.',
-            '6. U slucaju kasnjenja s povratom, naplacuje se dodatni dan najma.',
-            '7. Zabranjeno je pusenje u vozilu i prijevoz kucnih ljubimaca bez prethodne najave.'
+        doc.text('Stranica 1 od 2', 105, 290, { align: 'center' })
+
+        // ============ PAGE 2 ============
+        doc.addPage()
+
+        // Article 5 - Obligations
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Clanak 5. OBVEZE NAJMOPRIMCA', 20, 20)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'normal')
+        const obligations = [
+            '5.1. Koristiti vozilo paznjom dobrog domacina i u skladu sa Zakonom o sigurnosti prometa na cestama.',
+            '5.2. Vozilo smije koristiti iskljucivo najmoprimac naveden u ovom ugovoru.',
+            '5.3. Zabranjeno je koristenje vozila pod utjecajem alkohola, droga ili drugih opojnih sredstava.',
+            '5.4. Zabranjeno je pusenje u vozilu.',
+            '5.5. Zabranjeno je prijevoz kucnih ljubimaca bez prethodne pisane suglasnosti najmodavca.',
+            '5.6. Zabranjeno je koristenje vozila za vucu drugih vozila ili prikolica.',
+            '5.7. Zabranjeno je koristenje vozila za utrke, terenska voznja ili nezakonite aktivnosti.',
+            '5.8. Najmoprimac je duzan odmah prijaviti svaku prometnu nezgodu, krađu ili ostecenje vozila.',
+            '5.9. Vozilo se vraca s istom razinom goriva kao pri preuzimanju (puno-puno politika).'
         ]
-        uvjeti.forEach((u, i) => doc.text(u, 20, 248 + (i * 5)))
+        obligations.forEach((o, i) => doc.text(o, 20, 28 + (i * 5)))
 
+        // Article 6 - Insurance
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Clanak 6. OSIGURANJE I ODGOVORNOST', 20, 78)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'normal')
+        const insurance = [
+            '6.1. Vozilo je osigurano policom obveznog osiguranja od automobilske odgovornosti.',
+            '6.2. CDW (Collision Damage Waiver) - umanjena odgovornost za stetu na vozilu ukljucena u cijenu.',
+            '6.3. Najmoprimac je odgovoran za stetu nastalu namjernim djelovanjem ili grubom nepaznjom.',
+            '6.4. Najmoprimac je odgovoran za stetu na gumama, staklu, podvozju i unutrasnjosti vozila.',
+            '6.5. U slucaju prometne nezgode, najmoprimac je duzan pozvati policiju i pribaviti zapisnik.',
+            '6.6. Neogranicena kilometraza ukljucena u cijenu najma.'
+        ]
+        insurance.forEach((ins, i) => doc.text(ins, 20, 86 + (i * 5)))
+
+        // Article 7 - Return
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Clanak 7. POVRAT VOZILA', 20, 120)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'normal')
+        const returnC = [
+            '7.1. Vozilo se vraca na ugovorenu lokaciju, u ugovoreno vrijeme, u istom stanju kao pri preuzimanju.',
+            '7.2. Kasnjenje s povratom do 1 sat tolerira se bez dodatne naplate.',
+            '7.3. Kasnjenje vece od 1 sata naplacuje se kao dodatni dan najma.',
+            '7.4. Ukoliko se vozilo ne vrati u roku od 24 sata nakon ugovorenog vremena bez najave,',
+            '     najmodavac ima pravo prijaviti vozilo kao ukradeno nadleznim tijelima.',
+            '7.5. Troskovi goriva koje nedostaje naplacuju se po vazecoj maloprodajnoj cijeni + naknada za uslugu.'
+        ]
+        returnC.forEach((r, i) => doc.text(r, 20, 128 + (i * 5)))
+
+        // Article 8 - Fines
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Clanak 8. PROMETNI PREKRSAJI I KAZNE', 20, 165)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'normal')
+        doc.text('Najmoprimac je u potpunosti odgovoran za sve prometne prekrsaje pocinjeneza vrijeme trajanja najma.', 20, 172)
+        doc.text('Kazne za parkiranenje i ostale prekrsaje terete iskljucivo najmoprimca.', 20, 178)
+
+        // Article 9 - Final
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Clanak 9. ZAVRSNE ODREDBE', 20, 190)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'normal')
+        const finalC = [
+            '9.1. Za sve sto nije regulirano ovim ugovorom, primjenjuju se odredbe Zakona o obveznim odnosima.',
+            '9.2. U slucaju spora nadlezan je Opcinski sud u Zadru.',
+            '9.3. Potpisom ovog ugovora najmoprimac potvrđuje da je pregledao vozilo i preuzeo ga u ispravnom stanju.',
+            '9.4. Ugovor je sacinjen u dva (2) primjerka, po jedan za svaku ugovornu stranu.'
+        ]
+        finalC.forEach((f, i) => doc.text(f, 20, 198 + (i * 5)))
+
+        // Signatures
         doc.setFontSize(10)
-        doc.text('_______________________', 30, 290)
-        doc.text('Najmoprimac', 45, 297)
-        doc.text('_______________________', 130, 290)
-        doc.text('Najmodavac', 145, 297)
+        doc.text(`U Zadru, ${today}`, 20, 235)
 
-        doc.save(`Ugovor_${contractForm.driverName.replace(/\s/g, '_')}_${contractForm.pickupDate}.pdf`)
+        doc.setFont('helvetica', 'bold')
+        doc.text('NAJMOPRIMAC:', 30, 250)
+        doc.text('NAJMODAVAC:', 130, 250)
+
+        doc.setFont('helvetica', 'normal')
+        doc.line(20, 270, 80, 270)
+        doc.line(120, 270, 180, 270)
+        doc.text(`${contractForm.driverName}`, 50, 278, { align: 'center' })
+        doc.text(`${contractForm.agentName || 'KAROCA RENT A CAR'}`, 150, 278, { align: 'center' })
+        doc.text('(vlastorucni potpis)', 50, 284, { align: 'center' })
+        doc.text('(pecat i potpis)', 150, 284, { align: 'center' })
+
+        // Footer page 2
+        doc.setFontSize(8)
+        doc.text('Stranica 2 od 2', 105, 290, { align: 'center' })
+
+        doc.save(`Ugovor_${contractNumber}_${contractForm.driverName.replace(/\s/g, '_')}.pdf`)
         setGenerating(false)
     }
 
@@ -256,7 +374,8 @@ export default function AdminPage() {
             driverLicenseExpiry: '', driverPassportNumber: '', vehicleId: '',
             pickupDate: '', pickupTime: '09:00', returnDate: '', returnTime: '09:00',
             pickupLocation: 'Zadar - Zračna luka', pricePerDay: 65, totalDays: 1,
-            totalPrice: 65, deposit: 200, paymentMethod: 'Gotovina', notes: ''
+            totalPrice: 65, deposit: 200, paymentMethod: 'Gotovina', notes: '',
+            agentName: ''
         })
     }
 
@@ -431,6 +550,18 @@ export default function AdminPage() {
                                 </div>
                             </section>
                         </div>
+
+                        <section style={{ marginBottom: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '1.25rem' }}>
+                            <h3 style={{ fontSize: '0.875rem', color: '#e94560', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agent / Zaposlenik</h3>
+                            <div className="form-grid">
+                                <input
+                                    className="full-width"
+                                    placeholder="Ime i prezime zaposlenika koji izdaje vozilo *"
+                                    value={contractForm.agentName}
+                                    onChange={e => setContractForm({ ...contractForm, agentName: e.target.value })}
+                                />
+                            </div>
+                        </section>
 
                         <button className="generate-btn" onClick={generatePDF} disabled={generating || !contractForm.vehicleId || !contractForm.driverName}>
                             {generating ? <><Loader2 className="spin" size={18} /> Generiranje...</> : <><FileText size={18} /> Generiraj PDF ugovor</>}
