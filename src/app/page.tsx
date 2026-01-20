@@ -352,21 +352,8 @@ export default function Home() {
         <div className="container">
           <h2 className="section-title">Naša flota vozila</h2>
           <p className="section-subtitle">
-            Odaberite savršeno vozilo za vaše potrebe iz naše raznolike kolekcije
+            Odaberite savršeno vozilo za vaše potrebe
           </p>
-
-          {/* Category Filter */}
-          <div className="category-filter">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                className={`filter-btn ${selectedCategory === cat ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(cat)}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
 
           {/* Vehicle Grid */}
           <div className="vehicles-grid grid grid-3">
@@ -375,12 +362,14 @@ export default function Home() {
                 <Loader2 className="spinner" size={40} />
                 <p>Učitavanje vozila...</p>
               </div>
-            ) : filteredVehicles.length === 0 ? (
+            ) : vehicles.length === 0 ? (
               <div className="empty-state">
-                <p>Nema dostupnih vozila u ovoj kategoriji.</p>
+                <p>Nema dostupnih vozila.</p>
+
               </div>
             ) : (
-              filteredVehicles.map((vehicle) => (
+              vehicles.map((vehicle) => (
+
                 <div key={vehicle.id} className="vehicle-card card">
                   <div className="vehicle-image">
                     <span className="vehicle-emoji">{vehicle.image_url}</span>
