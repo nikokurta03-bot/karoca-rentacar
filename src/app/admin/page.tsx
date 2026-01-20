@@ -69,7 +69,10 @@ export default function AdminPage() {
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
     const [loginLoading, setLoginLoading] = useState(false)
+    const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
+    const isMasterAdmin = currentUserEmail === 'niko.kurta03@karoca-rentacar.hr'
     const [activeTab, setActiveTab] = useState<'bookings' | 'messages' | 'vehicles' | 'contract' | 'fleet'>('bookings')
+
     const [bookings, setBookings] = useState<Booking[]>([])
     const [messages, setMessages] = useState<ContactMessage[]>([])
     const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -141,6 +144,7 @@ export default function AdminPage() {
             const { data: { session } } = await supabase.auth.getSession()
             if (session) {
                 setIsLoggedIn(true)
+                setCurrentUserEmail(session.user.email ?? null)
             }
         }
         checkSession()
@@ -148,8 +152,10 @@ export default function AdminPage() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session) {
                 setIsLoggedIn(true)
+                setCurrentUserEmail(session.user.email ?? null)
             } else {
                 setIsLoggedIn(false)
+                setCurrentUserEmail(null)
             }
         })
 
@@ -506,8 +512,12 @@ export default function AdminPage() {
     return (
         <div className="admin">
             <nav className="admin-nav">
-                <div className="nav-brand">🚗 Karoca Admin</div>
+                <div className="nav-brand">
+                    🚗 Karoca Admin
+                    {isMasterAdmin && <span className="master-badge">Master Admin</span>}
+                </div>
                 <div className="nav-tabs">
+                    {/* ... existing buttons ... */}
                     <button className={activeTab === 'bookings' ? 'active' : ''} onClick={() => setActiveTab('bookings')}>
                         <CalendarCheck size={18} /> Rezervacije
                     </button>
@@ -524,9 +534,12 @@ export default function AdminPage() {
                         <Settings size={18} /> Flota
                     </button>
                 </div>
-                <button className="logout-btn" onClick={handleLogout}>
-                    <LogOut size={18} /> Odjava
-                </button>
+                <div className="nav-user">
+                    <span>{currentUserEmail}</span>
+                    <button className="logout-btn" onClick={handleLogout}>
+                        <LogOut size={18} /> Odjava
+                    </button>
+                </div>
             </nav>
 
             <main className="admin-content">
@@ -801,11 +814,14 @@ export default function AdminPage() {
 
         .admin { min-height: 100vh; background: #0f0f1a; color: white; }
         .admin-nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: rgba(26, 26, 46, 0.9); border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .nav-brand { font-size: 1.25rem; font-weight: 700; }
+        .nav-brand { font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem; }
+        .master-badge { font-size: 0.7rem; background: #f5af19; color: black; padding: 0.2rem 0.6rem; border-radius: 20px; text-transform: uppercase; }
         .nav-tabs { display: flex; gap: 0.5rem; }
         .nav-tabs button { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.25rem; background: transparent; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #888; cursor: pointer; }
         .nav-tabs button.active { background: linear-gradient(135deg, #e94560 0%, #f5af19 100%); border-color: transparent; color: white; }
+        .nav-user { display: flex; align-items: center; gap: 1rem; color: #888; font-size: 0.9rem; }
         .logout-btn { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.25rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #888; cursor: pointer; }
+
         .admin-content { padding: 2rem; }
         .loading { display: flex; justify-content: center; padding: 4rem; }
         .spin { animation: spin 1s linear infinite; }
