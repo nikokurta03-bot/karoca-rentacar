@@ -15,12 +15,16 @@ import {
   Phone,
   Mail,
   ChevronRight,
+  ChevronDown,
   Menu,
   X,
   Check,
   Sparkles,
-  Loader2
+  Loader2,
+  Briefcase,
+  Send
 } from 'lucide-react'
+
 
 // Vehicle type from Supabase
 interface Vehicle {
@@ -81,7 +85,33 @@ const testimonials = [
   },
 ]
 
+const howItWorks = [
+  { step: '01', title: 'Rezervirajte online', description: 'Odaberite vozilo, datume i lokaciju. Potvrda stiže odmah na email.' },
+  { step: '02', title: 'Preuzmite vozilo', description: 'Dođite na lokaciju s vozačkom dozvolom. Pregledamo vozilo zajedno.' },
+  { step: '03', title: 'Uživajte u vožnji', description: 'Istražite Zadar i okolicu. Dostupni smo 24/7 za sva pitanja.' },
+  { step: '04', title: 'Jednostavan povrat', description: 'Vratite vozilo na istu lokaciju. Brza provjera - bez skrivenih troškova.' },
+]
+
+const faqItems = [
+  { question: 'Koje dokumente trebam za najam?', answer: 'Potrebna vam je važeća vozačka dozvola (min. 2 godine), osobna iskaznica ili putovnica, te kartica za polog.' },
+  { question: 'Mogu li preuzeti vozilo na aerodromu?', answer: 'Da! Nudimo besplatnu dostavu na Zadarsku zračnu luku. Javite nam broj leta i dočekat ćemo vas.' },
+  { question: 'Što ako zakasnim s povratom?', answer: 'Toleriramo kašnjenje do 1 sat. Za duže kašnjenje, molimo kontaktirajte nas unaprijed.' },
+  { question: 'Je li gorivo uključeno u cijenu?', answer: 'Vozilo preuzimate puno i vraćate puno. Ako vratite s manje goriva, naplatit ćemo razliku.' },
+  { question: 'Koliki je polog?', answer: 'Standardni polog iznosi 200-500€ ovisno o vozilu. Vraća se u cijelosti nakon povrata.' },
+  { question: 'Mogu li voziti izvan Hrvatske?', answer: 'Da, uz prethodnu najavu. Vožnja u EU zemlje je dozvoljena uz dodatnu dokumentaciju.' },
+]
+
+const longTermBenefits = [
+  'Popusti do 40% za mjesečni najam',
+  'Zamjensko vozilo uključeno',
+  'Servis i održavanje uključeno',
+  'Fleksibilni uvjeti plaćanja',
+  'Personalizirani account manager',
+  'Prioritetna podrška 24/7',
+]
+
 export default function Home() {
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('Svi')
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -89,6 +119,8 @@ export default function Home() {
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' })
   const [contactLoading, setContactLoading] = useState(false)
   const [contactSuccess, setContactSuccess] = useState(false)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [newsletterEmail, setNewsletterEmail] = useState('')
 
   const categories = ['Svi', 'Economy', 'Business', 'Premium', 'SUV', 'Electric', 'Luxury']
 
@@ -154,10 +186,11 @@ export default function Home() {
           <div className={`nav-links ${mobileMenuOpen ? 'active' : ''}`}>
             <a href="#vozila">Vozila</a>
             <a href="#usluge">Usluge</a>
-            <a href="#o-nama">O nama</a>
+            <a href="#faq">FAQ</a>
+            <a href="/blog">Blog</a>
             <a href="#kontakt">Kontakt</a>
-            <a href="/admin">Admin</a>
           </div>
+
 
           <div className="nav-actions">
             <a href="tel:+385991655885" className="nav-phone">
@@ -360,8 +393,68 @@ export default function Home() {
         </div>
       </section>
 
+      {/* How It Works Section */}
+      <section className="how-it-works">
+        <div className="container">
+          <h2 className="section-title">Kako funkcionira</h2>
+          <p className="section-subtitle">Jednostavan proces u 4 koraka</p>
+          <div className="steps-grid grid grid-4">
+            {howItWorks.map((item, index) => (
+              <div key={index} className="step-card">
+                <div className="step-number">{item.step}</div>
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Long-term Rental Section */}
+      <section className="long-term">
+        <div className="container">
+          <div className="long-term-content glass">
+            <div className="long-term-text">
+              <Briefcase size={40} />
+              <h2>Dugoročni najam za firme</h2>
+              <p>Idealno rješenje za poslovne klijente. Fleksibilni uvjeti, konkurentne cijene i premium podrška.</p>
+              <ul className="benefits-list">
+                {longTermBenefits.map((benefit, index) => (
+                  <li key={index}><Check size={18} /> {benefit}</li>
+                ))}
+              </ul>
+              <a href="tel:+385991655885" className="btn btn-primary">
+                <Phone size={18} /> Zatražite ponudu
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="faq-section">
+        <div className="container">
+          <h2 className="section-title">Često postavljana pitanja</h2>
+          <p className="section-subtitle">Pronađite odgovore na najčešća pitanja o najmu vozila</p>
+          <div className="faq-list">
+            {faqItems.map((item, index) => (
+              <div key={index} className={`faq-item ${openFaq === index ? 'open' : ''}`}>
+                <button className="faq-question" onClick={() => setOpenFaq(openFaq === index ? null : index)}>
+                  <span>{item.question}</span>
+                  <ChevronDown size={20} className={`faq-icon ${openFaq === index ? 'rotated' : ''}`} />
+                </button>
+                <div className="faq-answer">
+                  <p>{item.answer}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials Section */}
       <section id="o-nama" className="testimonials">
+
         <div className="container">
           <h2 className="section-title">Što kažu naši klijenti</h2>
           <p className="section-subtitle">
@@ -530,10 +623,24 @@ export default function Home() {
               </div>
               <div className="footer-col">
                 <h5>Podrška</h5>
-                <a href="#">FAQ</a>
-                <a href="#">Kontakt</a>
+                <a href="#faq">FAQ</a>
+                <a href="#kontakt">Kontakt</a>
                 <a href="#">Uvjeti korištenja</a>
                 <a href="#">Privatnost</a>
+              </div>
+              <div className="footer-col newsletter-col">
+                <h5>Newsletter</h5>
+                <p>Prijavite se za ekskluzivne ponude i novosti</p>
+                <form className="newsletter-form" onSubmit={(e) => { e.preventDefault(); setNewsletterEmail(''); alert('Hvala na prijavi!'); }}>
+                  <input
+                    type="email"
+                    placeholder="Vaš email"
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    required
+                  />
+                  <button type="submit"><Send size={18} /></button>
+                </form>
               </div>
             </div>
           </div>
@@ -1292,7 +1399,194 @@ export default function Home() {
             gap: 2rem;
           }
         }
+
+        /* How It Works Section */
+        .how-it-works {
+          padding: 6rem 0;
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .grid-4 {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 2rem;
+        }
+        .step-card {
+          text-align: center;
+          padding: 2rem;
+        }
+        .step-number {
+          width: 60px;
+          height: 60px;
+          margin: 0 auto 1.5rem;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: white;
+        }
+        .step-card h3 {
+          margin-bottom: 0.75rem;
+          font-size: 1.125rem;
+        }
+        .step-card p {
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 0.9rem;
+          line-height: 1.6;
+        }
+
+        /* Long-term Rental Section */
+        .long-term {
+          padding: 6rem 0;
+        }
+        .long-term-content {
+          padding: 4rem;
+          border-radius: 24px;
+          background: linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(245, 175, 25, 0.1) 100%);
+        }
+        .long-term-text {
+          max-width: 700px;
+        }
+        .long-term-text svg {
+          color: var(--primary);
+          margin-bottom: 1.5rem;
+        }
+        .long-term-text h2 {
+          font-size: 2rem;
+          margin-bottom: 1rem;
+        }
+        .long-term-text > p {
+          color: rgba(255, 255, 255, 0.7);
+          margin-bottom: 2rem;
+          font-size: 1.1rem;
+        }
+        .benefits-list {
+          list-style: none;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+        .benefits-list li {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-size: 0.95rem;
+        }
+        .benefits-list li svg {
+          color: var(--secondary);
+          margin-bottom: 0;
+        }
+
+        /* FAQ Section */
+        .faq-section {
+          padding: 6rem 0;
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .faq-list {
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        .faq-item {
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          margin-bottom: 1rem;
+          overflow: hidden;
+          transition: all 0.3s;
+        }
+        .faq-item:hover {
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+        .faq-question {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.25rem 1.5rem;
+          background: rgba(255, 255, 255, 0.03);
+          border: none;
+          color: white;
+          font-size: 1rem;
+          font-weight: 500;
+          cursor: pointer;
+          text-align: left;
+        }
+        .faq-icon {
+          transition: transform 0.3s;
+          flex-shrink: 0;
+        }
+        .faq-icon.rotated {
+          transform: rotate(180deg);
+        }
+        .faq-answer {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s;
+        }
+        .faq-item.open .faq-answer {
+          max-height: 200px;
+        }
+        .faq-answer p {
+          padding: 0 1.5rem 1.25rem;
+          color: rgba(255, 255, 255, 0.7);
+          line-height: 1.7;
+        }
+
+        /* Newsletter */
+        .newsletter-col p {
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.6);
+          margin-bottom: 1rem;
+        }
+        .newsletter-form {
+          display: flex;
+          gap: 0.5rem;
+        }
+        .newsletter-form input {
+          flex: 1;
+          padding: 0.75rem 1rem;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.05);
+          color: white;
+          font-size: 0.9rem;
+        }
+        .newsletter-form input::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+        .newsletter-form button {
+          padding: 0.75rem 1rem;
+          border: none;
+          border-radius: 8px;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+          color: white;
+          cursor: pointer;
+          transition: transform 0.2s;
+        }
+        .newsletter-form button:hover {
+          transform: scale(1.05);
+        }
+
+        @media (max-width: 1024px) {
+          .grid-4 {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 768px) {
+          .grid-4 {
+            grid-template-columns: 1fr;
+          }
+          .benefits-list {
+            grid-template-columns: 1fr;
+          }
+          .long-term-content {
+            padding: 2rem;
+          }
+        }
       `}</style>
+
     </div>
   )
 }
