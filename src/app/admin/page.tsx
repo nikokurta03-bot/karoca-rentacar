@@ -66,8 +66,10 @@ interface Vehicle {
 
 export default function AdminPage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false)
+    const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
+    const [loginLoading, setLoginLoading] = useState(false)
     const [activeTab, setActiveTab] = useState<'bookings' | 'messages' | 'vehicles' | 'contract' | 'fleet'>('bookings')
     const [bookings, setBookings] = useState<Booking[]>([])
     const [messages, setMessages] = useState<ContactMessage[]>([])
@@ -76,6 +78,7 @@ export default function AdminPage() {
     const [generating, setGenerating] = useState(false)
     const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
     const [saving, setSaving] = useState(false)
+
 
     // Contract form state
     const [contractForm, setContractForm] = useState({
