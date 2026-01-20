@@ -100,9 +100,11 @@ export default function AdminPage() {
         totalPrice: 65,
         deposit: 200,
         paymentMethod: 'Gotovina',
+        paymentStatus: 'Neplaćeno',
         notes: '',
-        agentName: '' // Novi field
+        agentName: ''
     })
+
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault()
@@ -414,10 +416,11 @@ export default function AdminPage() {
             driverLicenseExpiry: '', driverPassportNumber: '', vehicleId: '',
             pickupDate: '', pickupTime: '09:00', returnDate: '', returnTime: '09:00',
             pickupLocation: 'Zadar - Zračna luka', pricePerDay: 65, totalDays: 1,
-            totalPrice: 65, deposit: 200, paymentMethod: 'Gotovina', notes: '',
-            agentName: ''
+            totalPrice: 65, deposit: 200, paymentMethod: 'Gotovina', paymentStatus: 'Neplaćeno',
+            notes: '', agentName: ''
         })
     }
+
 
     if (!isLoggedIn) {
         return (
@@ -696,8 +699,26 @@ export default function AdminPage() {
                                         <option>Kartica</option>
                                         <option>Bankovni prijenos</option>
                                     </select>
+                                    <div className="input-group">
+                                        <label>Status plaćanja</label>
+                                        <select
+                                            value={contractForm.paymentStatus}
+                                            onChange={e => setContractForm({ ...contractForm, paymentStatus: e.target.value })}
+                                            style={{
+                                                background: contractForm.paymentStatus === 'Plaćeno' ? 'rgba(34, 197, 94, 0.2)' :
+                                                    contractForm.paymentStatus === 'Djelomično' ? 'rgba(245, 175, 25, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                                borderColor: contractForm.paymentStatus === 'Plaćeno' ? '#22c55e' :
+                                                    contractForm.paymentStatus === 'Djelomično' ? '#f5af19' : '#ef4444'
+                                            }}
+                                        >
+                                            <option>Neplaćeno</option>
+                                            <option>Djelomično</option>
+                                            <option>Plaćeno</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </section>
+
                         </div>
 
                         <section style={{ marginBottom: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '1.25rem' }}>
