@@ -372,9 +372,14 @@ export default function Home() {
 
                 <div key={vehicle.id} className="vehicle-card card">
                   <div className="vehicle-image">
-                    <span className="vehicle-emoji">{vehicle.image_url}</span>
+                    {vehicle.image_url?.startsWith('http') ? (
+                      <img src={vehicle.image_url} alt={vehicle.name} className="vehicle-img" />
+                    ) : (
+                      <span className="vehicle-emoji">{vehicle.image_url}</span>
+                    )}
                     <span className="vehicle-category">{vehicle.category}</span>
                   </div>
+
 
                   <div className="vehicle-content">
                     <div className="vehicle-header">
@@ -1195,7 +1200,14 @@ export default function Home() {
         .vehicle-emoji {
           font-size: 5rem;
         }
+        .vehicle-img {
+          width: 100%;
+          height: 140px;
+          object-fit: cover;
+          border-radius: 8px;
+        }
         
+
         .vehicle-category {
           position: absolute;
           top: 1rem;
