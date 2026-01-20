@@ -29,6 +29,7 @@ export interface Vehicle {
     color: string
     cleanliness: 'Oprano' | 'Neoprano'
     vehicle_status: 'Spreman' | 'U najmu' | 'Servis'
+    license_plate: string
 }
 
 export interface Booking {

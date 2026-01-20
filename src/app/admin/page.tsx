@@ -61,6 +61,7 @@ interface Vehicle {
     color?: string
     cleanliness?: 'Oprano' | 'Neoprano'
     vehicle_status?: 'Spreman' | 'U najmu' | 'Servis'
+    license_plate?: string
 }
 
 export default function AdminPage() {
@@ -174,7 +175,8 @@ export default function AdminPage() {
             tire_age: selectedVehicle.tire_age,
             color: selectedVehicle.color,
             cleanliness: selectedVehicle.cleanliness,
-            vehicle_status: selectedVehicle.vehicle_status
+            vehicle_status: selectedVehicle.vehicle_status,
+            license_plate: selectedVehicle.license_plate
         }).eq('id', selectedVehicle.id)
         if (error) {
             alert('Greška pri spremanju!')
@@ -520,11 +522,12 @@ export default function AdminPage() {
                     <div className="table-container">
                         <h2>Vozila ({vehicles.length})</h2>
                         <table>
-                            <thead><tr><th>Naziv</th><th>Kategorija</th><th>Cijena/dan</th><th>Dostupnost</th></tr></thead>
+                            <thead><tr><th>Naziv</th><th>Registracija</th><th>Kategorija</th><th>Cijena/dan</th><th>Dostupnost</th></tr></thead>
                             <tbody>
                                 {vehicles.map((v) => (
                                     <tr key={v.id}>
                                         <td>{v.name}</td>
+                                        <td><strong style={{ color: '#e94560' }}>{v.license_plate || '-'}</strong></td>
                                         <td>{v.category}</td>
                                         <td>€{v.price_per_day}</td>
                                         <td><button className={`toggle ${v.available ? 'on' : 'off'}`} onClick={() => toggleVehicleAvailability(v.id, v.available)}>{v.available ? 'Dostupno' : 'Nedostupno'}</button></td>
@@ -548,9 +551,14 @@ export default function AdminPage() {
 
                                 <div className="fleet-form-grid">
                                     <div className="input-group">
+                                        <label>Registracija (tablica)</label>
+                                        <input type="text" placeholder="ZD-123-AB" value={selectedVehicle.license_plate || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, license_plate: e.target.value.toUpperCase() })} />
+                                    </div>
+                                    <div className="input-group">
                                         <label>Kilometraža (km)</label>
                                         <input type="number" value={selectedVehicle.mileage || 0} onChange={e => setSelectedVehicle({ ...selectedVehicle, mileage: Number(e.target.value) })} />
                                     </div>
+
                                     <div className="input-group">
                                         <label>Boja vozila</label>
                                         <input type="text" value={selectedVehicle.color || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, color: e.target.value })} />
