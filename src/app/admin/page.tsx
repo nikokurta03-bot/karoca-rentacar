@@ -202,25 +202,34 @@ export default function AdminPage() {
     const saveVehicle = async () => {
         if (!selectedVehicle) return
         setSaving(true)
-        const { error } = await supabase.from('vehicles').update({
-            mileage: selectedVehicle.mileage,
-            registration_expiry: selectedVehicle.registration_expiry,
-            kasko_expiry: selectedVehicle.kasko_expiry,
-            last_service_date: selectedVehicle.last_service_date,
-            tire_type: selectedVehicle.tire_type,
-            tire_age: selectedVehicle.tire_age,
-            color: selectedVehicle.color,
-            cleanliness: selectedVehicle.cleanliness,
-            vehicle_status: selectedVehicle.vehicle_status,
-            license_plate: selectedVehicle.license_plate
-        }).eq('id', selectedVehicle.id)
-        if (error) {
-            alert('Greška pri spremanju!')
-        } else {
+        try {
+            const { error } = await supabase.from('vehicles').update({
+                name: selectedVehicle.name,
+                category: selectedVehicle.category,
+                price_per_day: selectedVehicle.price_per_day,
+                mileage: selectedVehicle.mileage,
+                registration_expiry: selectedVehicle.registration_expiry || null,
+                kasko_expiry: selectedVehicle.kasko_expiry || null,
+                last_service_date: selectedVehicle.last_service_date || null,
+                tire_type: selectedVehicle.tire_type,
+                tire_age: selectedVehicle.tire_age,
+                color: selectedVehicle.color,
+                cleanliness: selectedVehicle.cleanliness,
+                vehicle_status: selectedVehicle.vehicle_status,
+                license_plate: selectedVehicle.license_plate
+            }).eq('id', selectedVehicle.id)
+
+            if (error) throw error
+
             await fetchData()
             setSelectedVehicle(null)
+            alert('Promjene uspješno spremljene!')
+        } catch (error: any) {
+            console.error('Error saving vehicle:', error)
+            alert(`Greška pri spremanju: ${error.message || 'Nepoznata greška'}`)
+        } finally {
+            setSaving(false)
         }
-        setSaving(false)
     }
 
     const updateBookingStatus = async (id: string, status: string) => {
@@ -622,10 +631,28 @@ export default function AdminPage() {
                                 </div>
 
                                 <div className="fleet-form-grid">
+                                    <div className="input-group full-width">
+                                        <label>Naziv vozila</label>
+                                        <input type="text" value={selectedVehicle.name || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, name: e.target.value })} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Kategorija</label>
+                                        <select value={selectedVehicle.category || 'Economic'} onChange={e => setSelectedVehicle({ ...selectedVehicle, category: e.target.value })}>
+                                            <option>Economic</option>
+                                            <option>SUV</option>
+                                            <option>Premium</option>
+                                            <option>Kombi</option>
+                                        </select>
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Cijena po danu (€)</label>
+                                        <input type="number" value={selectedVehicle.price_per_day || 0} onChange={e => setSelectedVehicle({ ...selectedVehicle, price_per_day: Number(e.target.value) })} />
+                                    </div>
                                     <div className="input-group">
                                         <label>Registracija (tablica)</label>
                                         <input type="text" placeholder="ZD-123-AB" value={selectedVehicle.license_plate || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, license_plate: e.target.value.toUpperCase() })} />
                                     </div>
+
                                     <div className="input-group">
                                         <label>Kilometraža (km)</label>
                                         <input type="number" value={selectedVehicle.mileage || 0} onChange={e => setSelectedVehicle({ ...selectedVehicle, mileage: Number(e.target.value) })} />
@@ -826,7 +853,22 @@ export default function AdminPage() {
         .loading { display: flex; justify-content: center; padding: 4rem; }
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
         .table-container { background: rgba(26,26,46,0.5); border-radius: 16px; padding: 1.5rem; }
+        .generate-btn { display: flex; align-items: center; gap: 0.5rem; padding: 1rem 2rem; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border: none; border-radius: 12px; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .generate-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(30, 58, 138, 0.3); }
+        .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* Fleet Edit Styles */
+        .fleet-edit { background: rgba(255, 255, 255, 0.03); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; border: 1px solid rgba(255,255,255,0.1); }
+        .fleet-edit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .fleet-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .input-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .input-group.full-width { grid-column: 1 / -1; }
+        .input-group label { font-size: 0.85rem; color: #888; font-weight: 500; }
+        .input-group input, .input-group select { padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; }
+        .input-group input:focus { border-color: #3b82f6; outline: none; }
+        
         h2 { margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 1rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
