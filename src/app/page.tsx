@@ -205,7 +205,9 @@ export default function Home() {
             <a href="#faq">FAQ</a>
             <a href="/blog">Blog</a>
             <a href="#kontakt">Kontakt</a>
+            <a href="/admin">Admin</a>
           </div>
+
 
 
           <div className="nav-actions">
