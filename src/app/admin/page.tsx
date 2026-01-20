@@ -19,7 +19,6 @@ import {
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 
-const ADMIN_PASSWORD = 'karoca2024'
 
 interface Booking {
     id: string
@@ -109,26 +108,52 @@ export default function AdminPage() {
     })
 
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (password === ADMIN_PASSWORD) {
-            setIsLoggedIn(true)
-            setError('')
-            localStorage.setItem('adminLoggedIn', 'true')
-        } else {
-            setError('Pogrešna šifra!')
+        setLoginLoading(true)
+        setError('')
+
+        try {
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            })
+
+            if (authError) {
+                setError('Neuspješna prijava: ' + authError.message)
+            } else {
+                setIsLoggedIn(true)
+            }
+        } catch (err: any) {
+            setError('Došlo je do pogreške pri prijavi')
+        } finally {
+            setLoginLoading(false)
         }
     }
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await supabase.auth.signOut()
         setIsLoggedIn(false)
-        localStorage.removeItem('adminLoggedIn')
     }
 
     useEffect(() => {
-        if (localStorage.getItem('adminLoggedIn') === 'true') {
-            setIsLoggedIn(true)
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session) {
+                setIsLoggedIn(true)
+            }
         }
+        checkSession()
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session) {
+                setIsLoggedIn(true)
+            } else {
+                setIsLoggedIn(false)
+            }
+        })
+
+        return () => subscription.unsubscribe()
     }, [])
 
     useEffect(() => {
@@ -430,11 +455,35 @@ export default function AdminPage() {
             <div className="login-page">
                 <div className="login-card">
                     <h1>🚗 Karoca Admin</h1>
-                    <p>Unesite šifru za pristup</p>
+                    <p>Prijavite se s emailom i lozinkom</p>
                     <form onSubmit={handleLogin}>
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Šifra..." autoFocus />
+                        <div className="input-group">
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Email..."
+                                required
+                                autoFocus
+                            />
+                        </div>
+                        <div className="input-group">
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Lozinka..."
+                                required
+                            />
+                        </div>
                         {error && <div className="error">{error}</div>}
-                        <button type="submit">Prijava</button>
+                        <button type="submit" disabled={loginLoading}>
+                            {loginLoading ? (
+                                <span className="loader-container">
+                                    <Loader2 className="spin" size={20} /> Prijava...
+                                </span>
+                            ) : 'Prijava'}
+                        </button>
                     </form>
                 </div>
                 <style jsx>{`
@@ -444,7 +493,11 @@ export default function AdminPage() {
           p { color: #888; margin-bottom: 2rem; }
           input { width: 100%; padding: 1rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; background: rgba(255,255,255,0.05); color: white; font-size: 1rem; margin-bottom: 1rem; }
           button { width: 100%; padding: 1rem; background: linear-gradient(135deg, #e94560 0%, #f5af19 100%); border: none; border-radius: 10px; color: white; font-weight: 600; cursor: pointer; }
+          button:disabled { opacity: 0.7; cursor: not-allowed; }
+          .loader-container { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
           .error { color: #e94560; margin-bottom: 1rem; }
+          .spin { animation: spin 1s linear infinite; }
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         `}</style>
             </div>
         )
