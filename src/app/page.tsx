@@ -156,6 +156,7 @@ export default function Home() {
             <a href="#usluge">Usluge</a>
             <a href="#o-nama">O nama</a>
             <a href="#kontakt">Kontakt</a>
+            <a href="/admin">Admin</a>
           </div>
 
           <div className="nav-actions">
