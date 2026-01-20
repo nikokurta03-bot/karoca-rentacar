@@ -233,8 +233,9 @@ export default function Home() {
       <nav className="nav">
         <div className="container nav-container">
           <a href="/" className="logo">
-            <img src="/karoca-logo.jpg" alt="Karoca Rent A Car" className="logo-img" />
+            <img src="/karoca-logo-new.png" alt="Karoca Rent A Car" className="logo-img" />
           </a>
+
 
 
           <div className={`nav-links ${mobileMenuOpen ? 'active' : ''}`}>
@@ -676,8 +677,9 @@ export default function Home() {
           <div className="footer-top">
             <div className="footer-brand">
               <a href="/" className="logo">
-                <img src="/karoca-logo.jpg" alt="Karoca Rent A Car" className="logo-img" />
+                <img src="/karoca-logo-new.png" alt="Karoca Rent A Car" className="logo-img" />
               </a>
+
 
               <p>Vaš pouzdani partner za najam vozila u Hrvatskoj.</p>
             </div>
