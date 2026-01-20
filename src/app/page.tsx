@@ -1203,11 +1203,19 @@ export default function Home() {
         }
         .vehicle-img {
           width: 100%;
-          height: 140px;
+          height: 180px;
           object-fit: cover;
-          border-radius: 8px;
+          border-radius: 12px 12px 0 0;
+          position: absolute;
+          top: 0;
+          left: 0;
+        }
+        .vehicle-image {
+          height: 180px;
+          overflow: hidden;
         }
         
+
 
         .vehicle-category {
           position: absolute;
