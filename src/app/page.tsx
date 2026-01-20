@@ -890,7 +890,7 @@ export default function Home() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          height: 80px;
+          height: 120px;
         }
         
         .logo {
@@ -900,8 +900,10 @@ export default function Home() {
         }
         
         .logo-img {
-          height: 60px;
+          height: 100px;
+          padding: 10px 0;
           width: auto;
+
           object-fit: contain;
           transition: transform 0.3s ease;
         }
