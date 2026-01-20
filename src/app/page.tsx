@@ -129,6 +129,8 @@ export default function Home() {
   const [selectedExtras, setSelectedExtras] = useState<string[]>([])
   const [bookingStep, setBookingStep] = useState(1)
   const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' })
+  const [bookingLoading, setBookingLoading] = useState(false)
+
 
   const insuranceOptions = [
     { id: 'cdw', name: 'CDW+ Puno kasko', price: 15, description: 'Bez učešća u slučaju štete' },
@@ -166,6 +168,45 @@ export default function Home() {
     : vehicles.filter((v: Vehicle) => v.category === selectedCategory)
 
   // Handle contact form submission
+  const handleBookingSubmit = async () => {
+    if (!selectedVehicle) return
+    setBookingLoading(true)
+
+    const fromDate = new Date(bookingDates.from)
+    const toDate = new Date(bookingDates.to)
+    const diffTime = Math.abs(toDate.getTime() - fromDate.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1
+
+    const extrasPrice = selectedExtras.reduce((sum, id) => {
+      const option = insuranceOptions.find(o => o.id === id)
+      return sum + (option?.price || 0)
+    }, 0)
+
+    const totalPrice = (selectedVehicle.price_per_day + extrasPrice) * diffDays
+
+    try {
+      const { error } = await supabase.from('bookings').insert({
+        vehicle_id: selectedVehicle.id,
+        customer_name: customerInfo.name,
+        customer_email: customerInfo.email,
+        customer_phone: customerInfo.phone,
+        pickup_location: bookingDates.location,
+        pickup_date: bookingDates.from,
+        return_date: bookingDates.to,
+        total_price: totalPrice,
+        status: 'pending'
+      })
+
+      if (error) throw error
+      setBookingStep(3)
+    } catch (error) {
+      alert('Došlo je do pogreške pri slanju rezervacije. Molimo pokušajte ponovo.')
+      console.error(error)
+    } finally {
+      setBookingLoading(false)
+    }
+  }
+
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setContactLoading(true)
@@ -795,10 +836,16 @@ export default function Home() {
                   <button className="btn btn-secondary" onClick={() => setBookingStep(1)}>Nazad</button>
                   <button
                     className="btn btn-primary"
-                    onClick={() => setBookingStep(3)}
-                    disabled={!customerInfo.name || !customerInfo.email || !customerInfo.phone}
+                    onClick={handleBookingSubmit}
+                    disabled={!customerInfo.name || !customerInfo.email || !customerInfo.phone || bookingLoading}
                   >
-                    Nastavi <ChevronRight size={18} />
+                    {bookingLoading ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Loader2 size={18} className="spin" /> Slanje...
+                      </span>
+                    ) : (
+                      <>Potvrdi rezervaciju <ChevronRight size={18} /></>
+                    )}
                   </button>
                 </div>
               </div>
