@@ -122,6 +122,22 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [newsletterEmail, setNewsletterEmail] = useState('')
 
+  // Booking state
+  const [bookingModal, setBookingModal] = useState(false)
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
+  const [bookingDates, setBookingDates] = useState({ from: '', to: '', location: 'Zadar - Zračna luka' })
+  const [selectedExtras, setSelectedExtras] = useState<string[]>([])
+  const [bookingStep, setBookingStep] = useState(1)
+  const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' })
+
+  const insuranceOptions = [
+    { id: 'cdw', name: 'CDW+ Puno kasko', price: 15, description: 'Bez učešća u slučaju štete' },
+    { id: 'glass', name: 'Zaštita stakala i guma', price: 8, description: 'Pokriva oštećenja stakla i guma' },
+    { id: 'childseat', name: 'Dječja sjedalica', price: 5, description: 'Za djecu do 12 godina' },
+    { id: 'driver', name: 'Dodatni vozač', price: 10, description: 'Registracija drugog vozača' },
+    { id: 'gps', name: 'GPS navigacija', price: 5, description: 'Uređaj za navigaciju' },
+  ]
+
   const categories = ['Svi', 'Economy', 'Business', 'Premium', 'SUV', 'Electric', 'Luxury']
 
   // Fetch vehicles from Supabase
@@ -263,7 +279,7 @@ export default function Home() {
                   <MapPin size={18} />
                   Preuzimanje
                 </label>
-                <select>
+                <select value={bookingDates.location} onChange={e => setBookingDates({ ...bookingDates, location: e.target.value })}>
                   <option>Zadar - Zračna luka</option>
                   <option>Zadar - Centar</option>
                   <option>Zadar - Autobusni kolodvor</option>
@@ -276,28 +292,35 @@ export default function Home() {
                     <Calendar size={18} />
                     Od
                   </label>
-                  <input type="date" />
+                  <input type="date" value={bookingDates.from} onChange={e => setBookingDates({ ...bookingDates, from: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label>
                     <Calendar size={18} />
                     Do
                   </label>
-                  <input type="date" />
+                  <input type="date" value={bookingDates.to} onChange={e => setBookingDates({ ...bookingDates, to: e.target.value })} />
                 </div>
               </div>
 
-              <button className="btn btn-primary btn-book">
+              <button
+                className="btn btn-primary btn-book"
+                onClick={() => {
+                  document.getElementById('vozila')?.scrollIntoView({ behavior: 'smooth' })
+                }}
+              >
                 Pretraži vozila
                 <ChevronRight size={20} />
               </button>
             </div>
+
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="features">
+      <section id="usluge" className="features">
+
         <div className="container">
           <div className="features-grid grid grid-4">
             {features.map((feature, index) => (
@@ -381,10 +404,19 @@ export default function Home() {
                         <span className="price-amount">€{vehicle.price_per_day}</span>
                         <span className="price-period">/ dan</span>
                       </div>
-                      <button className="btn btn-primary btn-sm">
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => {
+                          setSelectedVehicle(vehicle)
+                          setBookingStep(1)
+                          setSelectedExtras([])
+                          setBookingModal(true)
+                        }}
+                      >
                         Rezerviraj
                       </button>
                     </div>
+
                   </div>
                 </div>
               ))
@@ -651,7 +683,143 @@ export default function Home() {
         </div>
       </footer>
 
+      {/* Booking Modal */}
+      {bookingModal && selectedVehicle && (
+        <div className="modal-overlay" onClick={() => setBookingModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setBookingModal(false)}><X size={24} /></button>
+
+            <div className="modal-header">
+              <h2>Rezervacija: {selectedVehicle.name}</h2>
+              <div className="modal-steps">
+                <span className={bookingStep >= 1 ? 'active' : ''}>1. Dodaci</span>
+                <span className={bookingStep >= 2 ? 'active' : ''}>2. Podaci</span>
+                <span className={bookingStep >= 3 ? 'active' : ''}>3. Potvrda</span>
+              </div>
+            </div>
+
+            {bookingStep === 1 && (
+              <div className="modal-body">
+                <div className="booking-summary">
+                  <div className="summary-vehicle">
+                    <span className="vehicle-emoji-large">{selectedVehicle.image_url}</span>
+                    <div>
+                      <strong>{selectedVehicle.name}</strong>
+                      <p>€{selectedVehicle.price_per_day}/dan</p>
+                    </div>
+                  </div>
+                  <div className="summary-dates">
+                    <p><Calendar size={16} /> {bookingDates.from || 'Odaberi datum'} → {bookingDates.to || 'Odaberi datum'}</p>
+                    <p><MapPin size={16} /> {bookingDates.location}</p>
+                  </div>
+                </div>
+
+                <h3>Odaberite dodatke i osiguranje</h3>
+                <div className="extras-grid">
+                  {insuranceOptions.map(option => (
+                    <label key={option.id} className={`extra-card ${selectedExtras.includes(option.id) ? 'selected' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedExtras.includes(option.id)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setSelectedExtras([...selectedExtras, option.id])
+                          } else {
+                            setSelectedExtras(selectedExtras.filter(id => id !== option.id))
+                          }
+                        }}
+                      />
+                      <div className="extra-info">
+                        <strong>{option.name}</strong>
+                        <small>{option.description}</small>
+                      </div>
+                      <span className="extra-price">+€{option.price}/dan</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="modal-footer">
+                  <div className="price-total">
+                    <span>Ukupno po danu:</span>
+                    <strong>€{selectedVehicle.price_per_day + selectedExtras.reduce((sum, id) => sum + (insuranceOptions.find(o => o.id === id)?.price || 0), 0)}</strong>
+                  </div>
+                  <button className="btn btn-primary" onClick={() => setBookingStep(2)}>
+                    Nastavi <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {bookingStep === 2 && (
+              <div className="modal-body">
+                <h3>Vaši podaci</h3>
+                <div className="customer-form">
+                  <div className="form-group">
+                    <label>Ime i prezime *</label>
+                    <input
+                      type="text"
+                      placeholder="Ivan Horvat"
+                      value={customerInfo.name}
+                      onChange={e => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Email *</label>
+                    <input
+                      type="email"
+                      placeholder="ivan@email.com"
+                      value={customerInfo.email}
+                      onChange={e => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Telefon *</label>
+                    <input
+                      type="tel"
+                      placeholder="+385 91 234 5678"
+                      value={customerInfo.phone}
+                      onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setBookingStep(1)}>Nazad</button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setBookingStep(3)}
+                    disabled={!customerInfo.name || !customerInfo.email || !customerInfo.phone}
+                  >
+                    Nastavi <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {bookingStep === 3 && (
+              <div className="modal-body">
+                <div className="confirmation-icon">✅</div>
+                <h3>Rezervacija zaprimljena!</h3>
+                <p>Kontaktirat ćemo vas uskoro na:</p>
+                <p><strong>{customerInfo.email}</strong></p>
+                <p><strong>{customerInfo.phone}</strong></p>
+                <div className="modal-footer">
+                  <button className="btn btn-primary" onClick={() => {
+                    setBookingModal(false)
+                    setBookingStep(1)
+                    setCustomerInfo({ name: '', email: '', phone: '' })
+                    setSelectedExtras([])
+                  }}>
+                    Zatvori
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
+
         .page {
           min-height: 100vh;
         }
@@ -1585,7 +1753,178 @@ export default function Home() {
             padding: 2rem;
           }
         }
+
+        /* Booking Modal */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 1rem;
+        }
+        .modal-content {
+          background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+          border-radius: 20px;
+          max-width: 600px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          position: relative;
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+        .modal-close {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          background: none;
+          border: none;
+          color: rgba(255,255,255,0.6);
+          cursor: pointer;
+          z-index: 10;
+        }
+        .modal-close:hover { color: white; }
+        .modal-header {
+          padding: 1.5rem;
+          border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .modal-header h2 {
+          font-size: 1.25rem;
+          margin-bottom: 1rem;
+        }
+        .modal-steps {
+          display: flex;
+          gap: 1rem;
+        }
+        .modal-steps span {
+          font-size: 0.85rem;
+          color: rgba(255,255,255,0.4);
+          padding: 0.5rem 1rem;
+          border-radius: 20px;
+          background: rgba(255,255,255,0.05);
+        }
+        .modal-steps span.active {
+          background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+          color: white;
+        }
+        .modal-body {
+          padding: 1.5rem;
+        }
+        .modal-body h3 {
+          font-size: 1rem;
+          margin-bottom: 1rem;
+          color: rgba(255,255,255,0.9);
+        }
+        .booking-summary {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1rem;
+          background: rgba(255,255,255,0.03);
+          border-radius: 12px;
+          margin-bottom: 1.5rem;
+        }
+        .summary-vehicle {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+        .vehicle-emoji-large {
+          font-size: 2.5rem;
+        }
+        .summary-vehicle strong { font-size: 1.1rem; }
+        .summary-vehicle p { 
+          color: var(--primary); 
+          font-weight: 600;
+          margin: 0;
+        }
+        .summary-dates p {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.9rem;
+          color: rgba(255,255,255,0.7);
+          margin: 0.25rem 0;
+        }
+        .extras-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin-bottom: 1.5rem;
+        }
+        .extra-card {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .extra-card:hover {
+          border-color: rgba(255,255,255,0.2);
+        }
+        .extra-card.selected {
+          background: rgba(233, 69, 96, 0.1);
+          border-color: var(--primary);
+        }
+        .extra-card input { display: none; }
+        .extra-info { flex: 1; }
+        .extra-info strong { display: block; margin-bottom: 0.25rem; }
+        .extra-info small { color: rgba(255,255,255,0.5); font-size: 0.8rem; }
+        .extra-price {
+          font-weight: 600;
+          color: var(--secondary);
+        }
+        .modal-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 1rem;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          margin-top: 1rem;
+        }
+        .price-total span {
+          color: rgba(255,255,255,0.6);
+          font-size: 0.9rem;
+        }
+        .price-total strong {
+          font-size: 1.5rem;
+          color: var(--secondary);
+          margin-left: 0.5rem;
+        }
+        .customer-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .btn-secondary {
+          background: rgba(255,255,255,0.1);
+          color: white;
+          border: 1px solid rgba(255,255,255,0.2);
+        }
+        .confirmation-icon {
+          font-size: 4rem;
+          text-align: center;
+          margin-bottom: 1rem;
+        }
+        .modal-body .confirmation-icon + h3 {
+          text-align: center;
+          font-size: 1.5rem;
+        }
+        .modal-body .confirmation-icon ~ p {
+          text-align: center;
+          margin: 0.5rem 0;
+        }
       `}</style>
+
 
     </div>
   )
