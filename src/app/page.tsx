@@ -233,12 +233,9 @@ export default function Home() {
       <nav className="nav">
         <div className="container nav-container">
           <a href="/" className="logo">
-            <span className="logo-icon">🚗</span>
-            <span className="logo-text">
-              <span className="logo-karoca">Karoca</span>
-              <span className="logo-subtitle">Rent A Car</span>
-            </span>
+            <img src="/karoca-logo.jpg" alt="Karoca Rent A Car" className="logo-img" />
           </a>
+
 
           <div className={`nav-links ${mobileMenuOpen ? 'active' : ''}`}>
             <a href="#vozila">Vozila</a>
@@ -679,12 +676,9 @@ export default function Home() {
           <div className="footer-top">
             <div className="footer-brand">
               <a href="/" className="logo">
-                <span className="logo-icon">🚗</span>
-                <span className="logo-text">
-                  <span className="logo-karoca">Karoca</span>
-                  <span className="logo-subtitle">Rent A Car</span>
-                </span>
+                <img src="/karoca-logo.jpg" alt="Karoca Rent A Car" className="logo-img" />
               </a>
+
               <p>Vaš pouzdani partner za najam vozila u Hrvatskoj.</p>
             </div>
 
@@ -905,31 +899,17 @@ export default function Home() {
           gap: 0.75rem;
         }
         
-        .logo-icon {
-          font-size: 2rem;
+        .logo-img {
+          height: 60px;
+          width: auto;
+          object-fit: contain;
+          transition: transform 0.3s ease;
         }
         
-        .logo-text {
-          display: flex;
-          flex-direction: column;
+        .logo:hover .logo-img {
+          transform: scale(1.05);
         }
-        
-        .logo-karoca {
-          font-size: 1.5rem;
-          font-weight: 800;
-          background: var(--gradient-accent);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          line-height: 1.1;
-        }
-        
-        .logo-subtitle {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-        }
+
         
         .nav-links {
           display: flex;
