@@ -612,8 +612,9 @@ export default function AdminPage() {
                                 <thead>
                                     <tr>
                                         <th>Vozilo</th>
+                                        <th>Tablica</th>
                                         <th>Km</th>
-                                        <th>Registracija</th>
+                                        <th>Istek reg.</th>
                                         <th>Kasko</th>
                                         <th>Gume</th>
                                         <th>Čistoća</th>
@@ -625,6 +626,7 @@ export default function AdminPage() {
                                     {vehicles.map((v) => (
                                         <tr key={v.id}>
                                             <td><strong>{v.name}</strong><br /><small style={{ color: '#888' }}>{v.color || '-'}</small></td>
+                                            <td><strong style={{ color: '#e94560' }}>{v.license_plate || '-'}</strong></td>
                                             <td>{v.mileage?.toLocaleString() || 0} km</td>
                                             <td>{v.registration_expiry ? new Date(v.registration_expiry).toLocaleDateString('hr') : '-'}</td>
                                             <td>{v.kasko_expiry ? new Date(v.kasko_expiry).toLocaleDateString('hr') : '-'}</td>
@@ -642,6 +644,7 @@ export default function AdminPage() {
                     <div className="contract-container">
                         <div className="contract-header">
                             <h2><FileText size={20} /> Novi ugovor o najmu</h2>
+
                             <button className="reset-btn" onClick={resetContractForm}>Očisti formu</button>
                         </div>
 
@@ -713,8 +716,9 @@ export default function AdminPage() {
                             {generating ? <><Loader2 className="spin" size={18} /> Generiranje...</> : <><FileText size={18} /> Generiraj PDF ugovor</>}
                         </button>
                     </div>
-                ) : null}
-            </main>
+                ) : null
+                }
+            </main >
 
             <style jsx>{`
 
