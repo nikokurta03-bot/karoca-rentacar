@@ -378,7 +378,8 @@ export default function Home() {
 
                   <div className="vehicle-content">
                     <div className="vehicle-header">
-                      <h4>{vehicle.name}</h4>
+                      <h4>{vehicle.name.replace(/ #\d+$/, '')}</h4>
+
                       <div className="vehicle-rating">
                         <Star size={14} fill="currentColor" />
                         <span>{vehicle.rating}</span>
