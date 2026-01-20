@@ -372,11 +372,12 @@ export default function Home() {
 
                 <div key={vehicle.id} className="vehicle-card card">
                   <div className="vehicle-image">
-                    {vehicle.image_url?.startsWith('http') ? (
+                    {(vehicle.image_url?.startsWith('http') || vehicle.image_url?.startsWith('/')) ? (
                       <img src={vehicle.image_url} alt={vehicle.name} className="vehicle-img" />
                     ) : (
                       <span className="vehicle-emoji">{vehicle.image_url}</span>
                     )}
+
                     <span className="vehicle-category">{vehicle.category}</span>
                   </div>
 
