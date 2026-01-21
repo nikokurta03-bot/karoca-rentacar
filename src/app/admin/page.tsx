@@ -222,21 +222,32 @@ export default function AdminPage() {
 
     const fetchData = async () => {
         setLoading(true)
-        if (activeTab === 'bookings') {
-            const { data } = await supabase.from('bookings').select('*, vehicle:vehicles(name)').order('created_at', { ascending: false })
-            setBookings(data || [])
-        } else if (activeTab === 'messages') {
-            const { data } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false })
-            setMessages(data || [])
-        } else if (activeTab === 'vehicles' || activeTab === 'contract' || activeTab === 'fleet') {
-            const { data } = await supabase.from('vehicles').select('*').order('name')
-            setVehicles(data || [])
-        } else if (activeTab === 'promo') {
-            const { data } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false })
-            setPromoCodes(data || [])
-        } else if (activeTab === 'api') {
-            const { data } = await supabase.from('api_keys').select('*').order('created_at', { ascending: false })
-            setApiKeys(data || [])
+        setError('')
+        try {
+            if (activeTab === 'bookings') {
+                const { data, error } = await supabase.from('bookings').select('*, vehicle:vehicles(name)').order('created_at', { ascending: false })
+                if (error) throw error
+                setBookings(data || [])
+            } else if (activeTab === 'messages') {
+                const { data, error } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false })
+                if (error) throw error
+                setMessages(data || [])
+            } else if (activeTab === 'vehicles' || activeTab === 'contract' || activeTab === 'fleet') {
+                const { data, error } = await supabase.from('vehicles').select('*').order('name')
+                if (error) throw error
+                setVehicles(data || [])
+            } else if (activeTab === 'promo') {
+                const { data, error } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false })
+                if (error) throw error
+                setPromoCodes(data || [])
+            } else if (activeTab === 'api') {
+                const { data, error } = await supabase.from('api_keys').select('*').order('created_at', { ascending: false })
+                if (error) throw error
+                setApiKeys(data || [])
+            }
+        } catch (err: any) {
+            console.error('Fetch error:', err)
+            setError('Greška pri dohvaćanju podataka: ' + err.message)
         }
         setLoading(false)
     }
