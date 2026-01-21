@@ -221,7 +221,8 @@ export default function Home() {
         extra_notes: extraNotes,
         border_crossing: selectedExtras.includes('border_eu') || selectedExtras.includes('border_noneu'),
         cleaning_fee: selectedExtras.includes('cleaning'),
-        deposit_confirmed: depositConfirmed
+        deposit_confirmed: depositConfirmed,
+        selected_extras: selectedExtras
       })
 
       if (error) throw error
