@@ -130,7 +130,7 @@ export default function Home() {
   // Booking state
   const [bookingModal, setBookingModal] = useState(false)
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
-  const [bookingDates, setBookingDates] = useState({ from: '', to: '', location: 'Zadar - Zračna luka' })
+  const [bookingDates, setBookingDates] = useState({ from: '2026-03-15', to: '2026-03-22', location: 'Zadar - Zračna luka' })
   const [selectedExtras, setSelectedExtras] = useState<string[]>([])
   const [bookingStep, setBookingStep] = useState(1)
   const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' })
@@ -349,14 +349,14 @@ export default function Home() {
                     <Calendar size={18} />
                     Od
                   </label>
-                  <input type="date" value={bookingDates.from} onChange={e => setBookingDates({ ...bookingDates, from: e.target.value })} />
+                  <input type="date" min="2026-03-15" value={bookingDates.from} onChange={e => setBookingDates({ ...bookingDates, from: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label>
                     <Calendar size={18} />
                     Do
                   </label>
-                  <input type="date" value={bookingDates.to} onChange={e => setBookingDates({ ...bookingDates, to: e.target.value })} />
+                  <input type="date" min="2026-03-15" value={bookingDates.to} onChange={e => setBookingDates({ ...bookingDates, to: e.target.value })} />
                 </div>
               </div>
 
