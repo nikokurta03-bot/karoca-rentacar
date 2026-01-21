@@ -2083,6 +2083,13 @@ export default function Home() {
         }
       `}</style>
 
+      {/* Mobile Sticky CTA */}
+      <div className="mobile-sticky-cta">
+        <div className="cta-text">
+          <span>Najam od <strong>€35/dan</strong></span>
+        </div>
+        <a href="#vozila" className="btn btn-primary">Rezerviraj</a>
+      </div>
 
     </div>
   )

@@ -361,6 +361,50 @@ section {
   }
 }
 
+/* Mobile Sticky Booking Button */
+.mobile-sticky-cta {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-sticky-cta {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 998;
+    padding: 1rem;
+    background: linear-gradient(to top, rgba(11, 29, 61, 0.98) 0%, rgba(11, 29, 61, 0.95) 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    justify-content: center;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .mobile-sticky-cta .cta-text {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .mobile-sticky-cta .cta-text strong {
+    color: white;
+    display: block;
+  }
+
+  .mobile-sticky-cta .btn {
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
+  /* Adjust WhatsApp button position */
+  .whatsapp-float {
+    bottom: 80px;
+  }
+}
+
 /* Grid */
 .grid {
   display: grid;
