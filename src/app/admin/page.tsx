@@ -720,35 +720,25 @@ export default function AdminPage() {
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', maxWidth: '150px' }}>
-                                                {/* Legacy Flags */}
-                                                {b.border_crossing && <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>Granica</span>}
-                                                {b.cleaning_fee && <span style={{ fontSize: '0.7rem', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>Čišćenje</span>}
-                                                {b.deposit_confirmed && <span style={{ fontSize: '0.7rem', background: 'rgba(245, 175, 25, 0.2)', color: '#f5af19', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(245, 175, 25, 0.3)' }}>Polog OK</span>}
+                                                {/* Status Badges */}
+                                                {b.deposit_confirmed && <span style={{ fontSize: '0.7rem', background: '#f5af19', color: '#000', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>POLOG OK</span>}
+                                                {(b.selected_extras?.includes('cdw')) && <span style={{ fontSize: '0.7rem', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>Kasko</span>}
+                                                {(b.selected_extras?.includes('glass')) && <span style={{ fontSize: '0.7rem', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>Stakla/Gume</span>}
 
-                                                {/* New Extras Array */}
-                                                {b.selected_extras?.map(id => {
-                                                    const labels: Record<string, string> = {
-                                                        'cdw': 'Kasko',
-                                                        'glass': 'Stakla/Gume',
-                                                        'infant': 'Jaje (Sjed.)',
-                                                        'child': 'Dječja sjed.',
-                                                        'booster': 'Booster',
-                                                        'gps': 'GPS',
-                                                        'border_eu': 'Granica EU',
-                                                        'border_noneu': 'Granica Izvan EU',
-                                                        'cleaning': 'Čišćenje'
-                                                    }
-                                                    // Don't duplicate if already shown by flags
-                                                    if (['cleaning', 'border_eu', 'border_noneu'].includes(id) && (b.cleaning_fee || b.border_crossing)) return null;
-                                                    if (!labels[id]) return null;
-                                                    return <span key={id} style={{
-                                                        fontSize: '0.7rem',
-                                                        background: 'rgba(255, 255, 255, 0.1)',
-                                                        color: '#fff',
-                                                        padding: '2px 6px',
-                                                        borderRadius: '4px'
-                                                    }}>{labels[id]}</span>
-                                                })}
+                                                {/* Child Seats - Blue */}
+                                                {(b.selected_extras?.includes('infant')) && <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px' }}>Jaje</span>}
+                                                {(b.selected_extras?.includes('child')) && <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px' }}>Dječja sjed.</span>}
+                                                {(b.selected_extras?.includes('booster')) && <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px' }}>Booster</span>}
+
+                                                {/* Border/Cleaning - Purple/Sky */}
+                                                {(b.border_crossing || b.selected_extras?.includes('border_eu') || b.selected_extras?.includes('border_noneu')) && (
+                                                    <span style={{ fontSize: '0.7rem', background: 'rgba(168, 85, 247, 0.2)', color: '#a855f7', padding: '2px 6px', borderRadius: '4px' }}>Granica</span>
+                                                )}
+                                                {(b.cleaning_fee || b.selected_extras?.includes('cleaning')) && (
+                                                    <span style={{ fontSize: '0.7rem', background: 'rgba(14, 165, 233, 0.2)', color: '#0ea5e9', padding: '2px 6px', borderRadius: '4px' }}>Čišćenje</span>
+                                                )}
+                                                {b.selected_extras?.includes('gps') && <span style={{ fontSize: '0.7rem', background: 'rgba(255, 255, 255, 0.1)', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>GPS</span>}
+
 
                                                 {!b.border_crossing && !b.cleaning_fee && (!b.selected_extras || b.selected_extras.length === 0) && (
                                                     <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>Bez dodataka</span>
