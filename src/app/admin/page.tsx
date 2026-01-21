@@ -700,7 +700,7 @@ export default function AdminPage() {
                         <h2>Rezervacije ({bookings.length})</h2>
                         <table>
                             <thead>
-                                <tr><th>Datum</th><th>Klijent</th><th>Vozilo</th><th>Period</th><th>Lokacija</th><th>Status</th><th>Akcije</th></tr>
+                                <tr><th>Datum</th><th>Klijent</th><th>Vozilo</th><th>Period</th><th>Dodaci</th><th>Status</th><th>Akcije</th></tr>
                             </thead>
                             <tbody>
                                 {bookings.map((b) => (
@@ -710,12 +710,16 @@ export default function AdminPage() {
                                             <strong>{b.customer_name}</strong><br />
                                             <small>{b.customer_email}</small><br />
                                             <small>{b.customer_phone}</small>
-                                            {b.extra_notes && (
-                                                <div style={{ marginTop: '0.5rem', padding: '0.4rem', background: 'rgba(245, 175, 25, 0.1)', border: '1px solid rgba(245, 175, 25, 0.2)', borderRadius: '6px', fontSize: '0.8rem' }}>
-                                                    <strong>Napomena:</strong> {b.extra_notes}
-                                                </div>
-                                            )}
-                                            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                                        </td>
+                                        <td>
+                                            <strong>{b.vehicle?.name || '-'}</strong><br />
+                                            <small>{b.pickup_location}</small>
+                                        </td>
+                                        <td>
+                                            {b.pickup_date} <br /> ↓ <br /> {b.return_date}
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', maxWidth: '150px' }}>
                                                 {b.border_crossing && <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px' }}>Granica</span>}
                                                 {b.cleaning_fee && <span style={{ fontSize: '0.7rem', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '2px 6px', borderRadius: '4px' }}>Čišćenje</span>}
                                                 {b.deposit_confirmed && <span style={{ fontSize: '0.7rem', background: 'rgba(245, 175, 25, 0.2)', color: '#f5af19', padding: '2px 6px', borderRadius: '4px' }}>Polog OK</span>}
@@ -728,21 +732,38 @@ export default function AdminPage() {
                                                         'booster': 'Booster',
                                                         'gps': 'GPS'
                                                     }
-                                                    // Only show labels for things not already covered by flags
                                                     if (['border_eu', 'border_noneu', 'cleaning'].includes(id)) return null;
                                                     if (!labels[id]) return null;
                                                     return <span key={id} style={{ fontSize: '0.7rem', background: 'rgba(255, 255, 255, 0.1)', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>{labels[id]}</span>
                                                 })}
                                             </div>
+                                            {b.extra_notes && (
+                                                <div style={{ marginTop: '0.5rem', padding: '0.4rem', background: 'rgba(245, 175, 25, 0.1)', border: '1px solid rgba(245, 175, 25, 0.2)', borderRadius: '6px', fontSize: '0.75rem', maxWidth: '150px' }}>
+                                                    {b.extra_notes}
+                                                </div>
+                                            )}
                                         </td>
-                                        <td>{b.vehicle?.name || '-'}</td>
-                                        <td>{b.pickup_date} → {b.return_date}</td>
-                                        <td>{b.pickup_location}</td>
-                                        <td><span className={`status status-${b.status}`}>{b.status}</span></td>
                                         <td>
                                             <div className="actions">
+                                                <button className="btn-confirm" title="Kreiraj Ugovor" onClick={() => {
+                                                    const v = vehicles.find(veh => veh.id === b.vehicle_id);
+                                                    setContractForm({
+                                                        ...contractForm,
+                                                        driverName: b.customer_name,
+                                                        driverEmail: b.customer_email || '',
+                                                        driverPhone: b.customer_phone || '',
+                                                        vehicleId: b.vehicle_id,
+                                                        pickupLocation: b.pickup_location,
+                                                        pickupDate: b.pickup_date,
+                                                        returnDate: b.return_date,
+                                                        pricePerDay: v?.price_per_day || 0,
+                                                        totalPrice: b.total_price,
+                                                        deposit: 700,
+                                                        paymentStatus: 'Neplaćeno'
+                                                    });
+                                                    setActiveTab('contract');
+                                                }}><FileText size={14} /></button>
                                                 {b.status === 'pending' && (<><button className="btn-confirm" onClick={() => updateBookingStatus(b.id, 'confirmed')}><Check size={14} /></button><button className="btn-cancel" onClick={() => updateBookingStatus(b.id, 'cancelled')}><X size={14} /></button></>)}
-                                                {b.status === 'confirmed' && (<button className="btn-complete" onClick={() => updateBookingStatus(b.id, 'completed')}>Završi</button>)}
                                             </div>
                                         </td>
                                     </tr>
