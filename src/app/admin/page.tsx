@@ -720,21 +720,28 @@ export default function AdminPage() {
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', maxWidth: '150px' }}>
-                                                {b.border_crossing && <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px' }}>Granica</span>}
-                                                {b.cleaning_fee && <span style={{ fontSize: '0.7rem', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '2px 6px', borderRadius: '4px' }}>Čišćenje</span>}
-                                                {b.deposit_confirmed && <span style={{ fontSize: '0.7rem', background: 'rgba(245, 175, 25, 0.2)', color: '#f5af19', padding: '2px 6px', borderRadius: '4px' }}>Polog OK</span>}
                                                 {b.selected_extras?.map(id => {
                                                     const labels: Record<string, string> = {
                                                         'cdw': 'Kasko',
                                                         'glass': 'Stakla/Gume',
-                                                        'infant': 'Jaje',
-                                                        'child': 'Sjedalica',
+                                                        'infant': 'Jaje (Sjed.)',
+                                                        'child': 'Dječja sjed.',
                                                         'booster': 'Booster',
-                                                        'gps': 'GPS'
+                                                        'gps': 'GPS',
+                                                        'border_eu': 'Granica EU',
+                                                        'border_noneu': 'Granica Izvan EU',
+                                                        'cleaning': 'Čišćenje'
                                                     }
-                                                    if (['border_eu', 'border_noneu', 'cleaning'].includes(id)) return null;
                                                     if (!labels[id]) return null;
-                                                    return <span key={id} style={{ fontSize: '0.7rem', background: 'rgba(255, 255, 255, 0.1)', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>{labels[id]}</span>
+                                                    const isSpecial = ['border_eu', 'border_noneu', 'cleaning'].includes(id);
+                                                    return <span key={id} style={{
+                                                        fontSize: '0.7rem',
+                                                        background: isSpecial ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                                                        color: isSpecial ? '#3b82f6' : '#fff',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '4px',
+                                                        border: isSpecial ? '1px solid rgba(59, 130, 246, 0.3)' : 'none'
+                                                    }}>{labels[id]}</span>
                                                 })}
                                             </div>
                                             {b.extra_notes && (
@@ -747,6 +754,20 @@ export default function AdminPage() {
                                             <div className="actions">
                                                 <button className="btn-confirm" title="Kreiraj Ugovor" onClick={() => {
                                                     const v = vehicles.find(veh => veh.id === b.vehicle_id);
+                                                    const extrasLabels: Record<string, string> = {
+                                                        'cdw': 'Puno osiguranje',
+                                                        'glass': 'Stakla i gume',
+                                                        'infant': 'Sjedalica Jaje',
+                                                        'child': 'Dječja sjedalica',
+                                                        'booster': 'Booster',
+                                                        'gps': 'GPS',
+                                                        'border_eu': 'Prelazak granice EU',
+                                                        'border_noneu': 'Prelazak granice IZVAN EU',
+                                                        'cleaning': 'Plaćeno čišćenje'
+                                                    };
+                                                    const selectedLabels = b.selected_extras?.map(id => extrasLabels[id]).filter(Boolean).join(', ');
+                                                    const fullNotes = [selectedLabels, b.extra_notes].filter(Boolean).join(' | ');
+
                                                     setContractForm({
                                                         ...contractForm,
                                                         driverName: b.customer_name,
@@ -760,7 +781,7 @@ export default function AdminPage() {
                                                         totalPrice: b.total_price,
                                                         deposit: 700,
                                                         paymentStatus: 'Neplaćeno',
-                                                        notes: b.extra_notes || ''
+                                                        notes: fullNotes
                                                     });
                                                     setActiveTab('contract');
                                                 }}><FileText size={14} /></button>
