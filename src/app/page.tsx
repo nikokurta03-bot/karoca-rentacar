@@ -22,7 +22,8 @@ import {
   Sparkles,
   Loader2,
   Briefcase,
-  Send
+  Send,
+  MessageCircle
 } from 'lucide-react'
 
 
@@ -699,6 +700,18 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* WhatsApp Floating Button */}
+      <a
+        href="https://wa.me/385991655885?text=Pozdrav!%20Zanima%20me%20najam%20vozila."
+        target="_blank"
+        rel="noopener noreferrer"
+        className="whatsapp-float"
+        aria-label="Kontaktirajte nas na WhatsApp"
+      >
+        <MessageCircle size={24} />
+        <span>Pišite nam</span>
+      </a>
 
       {/* Footer */}
       <footer className="footer">
