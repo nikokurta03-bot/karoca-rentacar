@@ -725,7 +725,7 @@ export default function AdminPage() {
                                                 {b.deposit_confirmed && <span style={{ fontSize: '0.7rem', background: 'rgba(245, 175, 25, 0.2)', color: '#f5af19', padding: '2px 6px', borderRadius: '4px' }}>Polog OK</span>}
                                                 {b.selected_extras?.map(id => {
                                                     const labels: Record<string, string> = {
-                                                        'cdw': 'Puno kasko',
+                                                        'cdw': 'Kasko',
                                                         'glass': 'Stakla/Gume',
                                                         'infant': 'Jaje',
                                                         'child': 'Sjedalica',
