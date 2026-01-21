@@ -720,6 +720,12 @@ export default function AdminPage() {
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', maxWidth: '150px' }}>
+                                                {/* Legacy Flags */}
+                                                {b.border_crossing && <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>Granica</span>}
+                                                {b.cleaning_fee && <span style={{ fontSize: '0.7rem', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>Čišćenje</span>}
+                                                {b.deposit_confirmed && <span style={{ fontSize: '0.7rem', background: 'rgba(245, 175, 25, 0.2)', color: '#f5af19', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(245, 175, 25, 0.3)' }}>Polog OK</span>}
+
+                                                {/* New Extras Array */}
                                                 {b.selected_extras?.map(id => {
                                                     const labels: Record<string, string> = {
                                                         'cdw': 'Kasko',
@@ -732,17 +738,21 @@ export default function AdminPage() {
                                                         'border_noneu': 'Granica Izvan EU',
                                                         'cleaning': 'Čišćenje'
                                                     }
+                                                    // Don't duplicate if already shown by flags
+                                                    if (['cleaning', 'border_eu', 'border_noneu'].includes(id) && (b.cleaning_fee || b.border_crossing)) return null;
                                                     if (!labels[id]) return null;
-                                                    const isSpecial = ['border_eu', 'border_noneu', 'cleaning'].includes(id);
                                                     return <span key={id} style={{
                                                         fontSize: '0.7rem',
-                                                        background: isSpecial ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                                                        color: isSpecial ? '#3b82f6' : '#fff',
+                                                        background: 'rgba(255, 255, 255, 0.1)',
+                                                        color: '#fff',
                                                         padding: '2px 6px',
-                                                        borderRadius: '4px',
-                                                        border: isSpecial ? '1px solid rgba(59, 130, 246, 0.3)' : 'none'
+                                                        borderRadius: '4px'
                                                     }}>{labels[id]}</span>
                                                 })}
+
+                                                {!b.border_crossing && !b.cleaning_fee && (!b.selected_extras || b.selected_extras.length === 0) && (
+                                                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>Bez dodataka</span>
+                                                )}
                                             </div>
                                             {b.extra_notes && (
                                                 <div style={{ marginTop: '0.5rem', padding: '0.4rem', background: 'rgba(245, 175, 25, 0.1)', border: '1px solid rgba(245, 175, 25, 0.2)', borderRadius: '6px', fontSize: '0.75rem', maxWidth: '150px' }}>
