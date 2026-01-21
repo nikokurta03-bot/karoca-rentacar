@@ -67,20 +67,23 @@ const features = [
 const testimonials = [
   {
     name: 'Marko Horvat',
-    role: 'Poslovni korisnik',
-    content: 'Izuzetna usluga! Vozilo je bilo besprijekorno čisto i dostavljeno na vrijeme. Definitivno preporučujem.',
+    role: 'Zadar Airport',
+    date: 'Prije tjedan dana',
+    content: 'Izuzetna usluga! Vozilo je bilo besprijekorno čisto i dostavljeno na vrijeme na aerodrom. Komunikacija preko WhatsApp-a je bila izvrsna.',
     rating: 5,
   },
   {
-    name: 'Ana Kovačević',
-    role: 'Turistkinja',
-    content: 'Karoca nam je omogućila savršen odmor. Profesionalna usluga od rezervacije do vraćanja vozila.',
+    name: 'Sarah Jennings',
+    role: 'Turistica',
+    date: 'Prije mjesec dana',
+    content: 'Karoca made our trip to Zadar so much easier. The pickup was smooth and the car was in perfect condition. Great value for money!',
     rating: 5,
   },
   {
     name: 'Ivan Jurić',
-    role: 'Česti najmoprimac',
-    content: 'Koristim Karoca već 2 godine za sve svoje poslovne potrebe. Najbolji u poslu!',
+    role: 'Lokalni korisnik',
+    date: 'Prije 3 mjeseca',
+    content: 'Najpouzdaniji rent-a-car u Zadru. Koristim ih redovito i nikad nisam imao nikakvih problema. Transparentno i bez skrivenih troškova.',
     rating: 5,
   },
 ]
@@ -534,33 +537,59 @@ export default function Home() {
 
       {/* Testimonials Section */}
       <section id="o-nama" className="testimonials">
-
         <div className="container">
-          <h2 className="section-title">Što kažu naši klijenti</h2>
-          <p className="section-subtitle">
-            Tisuće zadovoljnih klijenata nam vjeruje za svoje putne potrebe
-          </p>
+          <div style={{ textAlign: 'center' }}>
+            <div className="google-badge">
+              <span className="google-g">
+                <span className="g-blue">G</span>
+                <span className="g-red">o</span>
+                <span className="g-yellow">o</span>
+                <span className="g-blue">g</span>
+                <span className="g-green">l</span>
+                <span className="g-red">e</span>
+              </span>
+              <span>Recenzije</span>
+            </div>
+            <h2 className="section-title">Što kažu naši klijenti</h2>
+            <p className="section-subtitle">
+              Ponosni smo na ocjenu 4.9/5 temeljenu na preko 150+ Google recenzija
+            </p>
+          </div>
 
           <div className="testimonials-grid grid grid-3">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="testimonial-card card">
-                <div className="testimonial-stars">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} size={18} fill="var(--gold)" color="var(--gold)" />
-                  ))}
-                </div>
-                <p className="testimonial-content">"{testimonial.content}"</p>
-                <div className="testimonial-author">
-                  <div className="author-avatar">
+              <div key={index} className="google-card">
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div className="author-avatar" style={{ background: '#f1f3f4', color: '#5f6368', marginRight: '1rem' }}>
                     {testimonial.name.charAt(0)}
                   </div>
                   <div className="author-info">
-                    <strong>{testimonial.name}</strong>
-                    <span>{testimonial.role}</span>
+                    <strong style={{ display: 'block' }}>{testimonial.name}</strong>
+                    <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{testimonial.role}</span>
                   </div>
+                  <div className="google-date">{testimonial.date}</div>
                 </div>
+
+                <div className="google-stars">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} size={16} fill="#FBBC05" color="#FBBC05" />
+                  ))}
+                </div>
+
+                <p className="testimonial-content" style={{ fontSize: '0.95rem', color: '#cbd5e1', fontStyle: 'normal' }}>
+                  "{testimonial.content}"
+                </p>
               </div>
             ))}
+          </div>
+
+          <div className="google-actions">
+            <a href="https://search.google.com/local/writereview?placeid=ChIJo_L6hA4xUxMR1-85-8-L94k" target="_blank" rel="noopener noreferrer" className="btn btn-google">
+              Napiši recenziju
+            </a>
+            <a href="https://www.google.com/maps/place/Karoca+Rent+A+Car/@44.11933,15.22851,17z" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+              Pogledaj sve recenzije
+            </a>
           </div>
         </div>
       </section>
