@@ -15,7 +15,10 @@ import {
     FileText,
     Settings,
     Save,
-    Edit2
+    Edit2,
+    Tag,
+    Plus,
+    Copy
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 
@@ -63,6 +66,16 @@ interface Vehicle {
     license_plate?: string
 }
 
+interface PromoCode {
+    id: string
+    code: string
+    discount_percent: number
+    active: boolean
+    uses_remaining: number | null
+    valid_until: string | null
+    created_at: string
+}
+
 export default function AdminPage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [email, setEmail] = useState('')
@@ -71,7 +84,7 @@ export default function AdminPage() {
     const [loginLoading, setLoginLoading] = useState(false)
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
     const isMasterAdmin = currentUserEmail === 'niko.kurta03@karoca-rentacar.hr'
-    const [activeTab, setActiveTab] = useState<'bookings' | 'messages' | 'vehicles' | 'contract' | 'fleet'>('bookings')
+    const [activeTab, setActiveTab] = useState<'bookings' | 'messages' | 'vehicles' | 'contract' | 'fleet' | 'promo'>('bookings')
 
     const [bookings, setBookings] = useState<Booking[]>([])
     const [messages, setMessages] = useState<ContactMessage[]>([])
@@ -80,6 +93,12 @@ export default function AdminPage() {
     const [generating, setGenerating] = useState(false)
     const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
     const [saving, setSaving] = useState(false)
+
+    // Promo codes state
+    const [promoCodes, setPromoCodes] = useState<PromoCode[]>([])
+    const [newPromoCode, setNewPromoCode] = useState('')
+    const [newPromoDiscount, setNewPromoDiscount] = useState(10)
+    const [creatingPromo, setCreatingPromo] = useState(false)
 
 
     // Contract form state
@@ -195,6 +214,9 @@ export default function AdminPage() {
         } else if (activeTab === 'vehicles' || activeTab === 'contract' || activeTab === 'fleet') {
             const { data } = await supabase.from('vehicles').select('*').order('name')
             setVehicles(data || [])
+        } else if (activeTab === 'promo') {
+            const { data } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false })
+            setPromoCodes(data || [])
         }
         setLoading(false)
     }
@@ -250,6 +272,56 @@ export default function AdminPage() {
     const deleteMessage = async (id: string) => {
         await supabase.from('contact_messages').delete().eq('id', id)
         fetchData()
+    }
+
+    // Promo code functions
+    const generateRandomCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        let code = 'KAROCA'
+        for (let i = 0; i < 4; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length))
+        }
+        setNewPromoCode(code)
+    }
+
+    const createPromoCode = async () => {
+        if (!newPromoCode.trim()) {
+            alert('Unesite kod!')
+            return
+        }
+        setCreatingPromo(true)
+        try {
+            const { error } = await supabase.from('promo_codes').insert({
+                code: newPromoCode.toUpperCase().trim(),
+                discount_percent: newPromoDiscount,
+                active: true
+            })
+            if (error) throw error
+            setNewPromoCode('')
+            setNewPromoDiscount(10)
+            fetchData()
+            alert('Promo kod uspješno kreiran!')
+        } catch (error: any) {
+            alert(`Greška: ${error.message}`)
+        } finally {
+            setCreatingPromo(false)
+        }
+    }
+
+    const togglePromoActive = async (id: string, currentActive: boolean) => {
+        await supabase.from('promo_codes').update({ active: !currentActive }).eq('id', id)
+        fetchData()
+    }
+
+    const deletePromoCode = async (id: string) => {
+        if (!confirm('Jeste li sigurni da želite obrisati ovaj promo kod?')) return
+        await supabase.from('promo_codes').delete().eq('id', id)
+        fetchData()
+    }
+
+    const copyToClipboard = (code: string) => {
+        navigator.clipboard.writeText(code)
+        alert(`Kopirano: ${code}`)
     }
 
     const handleVehicleChange = (vehicleId: string) => {
@@ -542,6 +614,9 @@ export default function AdminPage() {
                     <button className={activeTab === 'fleet' ? 'active' : ''} onClick={() => setActiveTab('fleet')}>
                         <Settings size={18} /> Flota
                     </button>
+                    <button className={activeTab === 'promo' ? 'active' : ''} onClick={() => setActiveTab('promo')}>
+                        <Tag size={18} /> Promo
+                    </button>
                 </div>
                 <div className="nav-user">
                     <span>{currentUserEmail}</span>
@@ -832,6 +907,113 @@ export default function AdminPage() {
                         <button className="generate-btn" onClick={generatePDF} disabled={generating || !contractForm.vehicleId || !contractForm.driverName}>
                             {generating ? <><Loader2 className="spin" size={18} /> Generiranje...</> : <><FileText size={18} /> Generiraj PDF ugovor</>}
                         </button>
+                    </div>
+                ) : activeTab === 'promo' ? (
+                    <div className="table-container">
+                        <h2><Tag size={20} /> Promo kodovi ({promoCodes.length})</h2>
+
+                        {/* Create new promo code */}
+                        <div className="promo-create" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
+                            <h3 style={{ marginBottom: '1rem', color: '#f5af19' }}>Kreiraj novi promo kod</h3>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                <div className="input-group" style={{ flex: 1, minWidth: '200px' }}>
+                                    <label>Kod</label>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="KAROCA10"
+                                            value={newPromoCode}
+                                            onChange={e => setNewPromoCode(e.target.value.toUpperCase())}
+                                            style={{ flex: 1 }}
+                                        />
+                                        <button
+                                            onClick={generateRandomCode}
+                                            style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: 'white', cursor: 'pointer' }}
+                                            title="Generiraj random kod"
+                                        >
+                                            <Plus size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="input-group" style={{ width: '150px' }}>
+                                    <label>Popust (%)</label>
+                                    <select
+                                        value={newPromoDiscount}
+                                        onChange={e => setNewPromoDiscount(Number(e.target.value))}
+                                        style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white' }}
+                                    >
+                                        <option value={10}>10%</option>
+                                        <option value={20}>20%</option>
+                                        <option value={30}>30%</option>
+                                        <option value={40}>40%</option>
+                                        <option value={50}>50%</option>
+                                        <option value={60}>60%</option>
+                                    </select>
+                                </div>
+                                <button
+                                    onClick={createPromoCode}
+                                    disabled={creatingPromo}
+                                    style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                >
+                                    {creatingPromo ? <Loader2 className="spin" size={18} /> : <Plus size={18} />}
+                                    Kreiraj
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Promo codes table */}
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Kod</th>
+                                    <th>Popust</th>
+                                    <th>Status</th>
+                                    <th>Kreirano</th>
+                                    <th>Akcije</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {promoCodes.map((p) => (
+                                    <tr key={p.id}>
+                                        <td>
+                                            <strong style={{ fontSize: '1.1rem', letterSpacing: '0.05em' }}>{p.code}</strong>
+                                            <button
+                                                onClick={() => copyToClipboard(p.code)}
+                                                style={{ marginLeft: '0.5rem', padding: '0.25rem', background: 'transparent', border: 'none', color: '#888', cursor: 'pointer' }}
+                                                title="Kopiraj kod"
+                                            >
+                                                <Copy size={14} />
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <span style={{
+                                                padding: '0.25rem 0.75rem',
+                                                borderRadius: '20px',
+                                                background: p.discount_percent >= 40 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 175, 25, 0.2)',
+                                                color: p.discount_percent >= 40 ? '#ef4444' : '#f5af19',
+                                                fontWeight: '700'
+                                            }}>
+                                                -{p.discount_percent}%
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button
+                                                className={`toggle ${p.active ? 'on' : 'off'}`}
+                                                onClick={() => togglePromoActive(p.id, p.active)}
+                                            >
+                                                {p.active ? 'Aktivan' : 'Neaktivan'}
+                                            </button>
+                                        </td>
+                                        <td>{new Date(p.created_at).toLocaleDateString('hr')}</td>
+                                        <td>
+                                            <button className="btn-delete" onClick={() => deletePromoCode(p.id)}>
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 ) : null
                 }

@@ -136,6 +136,12 @@ export default function Home() {
   const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' })
   const [bookingLoading, setBookingLoading] = useState(false)
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState('')
+  const [promoDiscount, setPromoDiscount] = useState(0)
+  const [promoValidating, setPromoValidating] = useState(false)
+  const [promoError, setPromoError] = useState('')
+
 
   const insuranceOptions = [
     { id: 'cdw', name: 'CDW+ Puno kasko', price: 15, description: 'Bez učešća u slučaju štete' },
@@ -187,7 +193,12 @@ export default function Home() {
       return sum + (option?.price || 0)
     }, 0)
 
-    const totalPrice = (selectedVehicle.price_per_day + extrasPrice) * diffDays
+    let totalPrice = (selectedVehicle.price_per_day + extrasPrice) * diffDays
+
+    // Apply promo discount if valid
+    if (promoDiscount > 0) {
+      totalPrice = totalPrice * (1 - promoDiscount / 100)
+    }
 
     try {
       const { error } = await supabase.from('bookings').insert({
@@ -882,6 +893,48 @@ export default function Home() {
                       value={customerInfo.phone}
                       onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
                     />
+                  </div>
+
+                  {/* Promo Code Input */}
+                  <div className="promo-section" style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                    <label style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>Promo kod (opcionalno)</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        placeholder="Unesite promo kod"
+                        value={promoCode}
+                        onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); setPromoDiscount(0); }}
+                        style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.05)', color: 'white' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!promoCode.trim()) return;
+                          setPromoValidating(true);
+                          setPromoError('');
+                          const { data, error } = await supabase
+                            .from('promo_codes')
+                            .select('discount_percent')
+                            .eq('code', promoCode.trim())
+                            .eq('active', true)
+                            .single();
+                          if (error || !data) {
+                            setPromoError('Nevažeći promo kod');
+                            setPromoDiscount(0);
+                          } else {
+                            setPromoDiscount(data.discount_percent);
+                            setPromoError('');
+                          }
+                          setPromoValidating(false);
+                        }}
+                        disabled={promoValidating || !promoCode.trim()}
+                        style={{ padding: '0.75rem 1.25rem', background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: '600', cursor: 'pointer' }}
+                      >
+                        {promoValidating ? 'Provjera...' : 'Primijeni'}
+                      </button>
+                    </div>
+                    {promoError && <p style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.5rem' }}>{promoError}</p>}
+                    {promoDiscount > 0 && <p style={{ color: '#22c55e', fontSize: '0.9rem', marginTop: '0.5rem', fontWeight: '600' }}>✅ Popust od {promoDiscount}% primjenjen!</p>}
                   </div>
                 </div>
                 <div className="modal-footer">
