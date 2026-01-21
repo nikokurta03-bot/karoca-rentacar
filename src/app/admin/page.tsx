@@ -759,7 +759,8 @@ export default function AdminPage() {
                                                         pricePerDay: v?.price_per_day || 0,
                                                         totalPrice: b.total_price,
                                                         deposit: 700,
-                                                        paymentStatus: 'Neplaćeno'
+                                                        paymentStatus: 'Neplaćeno',
+                                                        notes: b.extra_notes || ''
                                                     });
                                                     setActiveTab('contract');
                                                 }}><FileText size={14} /></button>
