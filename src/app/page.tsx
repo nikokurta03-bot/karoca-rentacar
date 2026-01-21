@@ -826,7 +826,11 @@ export default function Home() {
               <div className="modal-body">
                 <div className="booking-summary">
                   <div className="summary-vehicle">
-                    <span className="vehicle-emoji-large">{selectedVehicle.image_url}</span>
+                    {selectedVehicle.image_url?.startsWith('http') || selectedVehicle.image_url?.startsWith('/') ? (
+                      <img src={selectedVehicle.image_url} alt={selectedVehicle.name} className="vehicle-img-summary" style={{ width: '80px', height: 'auto', borderRadius: '8px' }} />
+                    ) : (
+                      <span className="vehicle-emoji-large">{selectedVehicle.image_url}</span>
+                    )}
                     <div>
                       <strong>{selectedVehicle.name}</strong>
                       <p>€{selectedVehicle.price_per_day}/dan</p>
