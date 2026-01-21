@@ -24,7 +24,8 @@ import {
   Briefcase,
   Send,
   MessageCircle,
-  Luggage
+  Luggage,
+  ShieldCheck
 } from 'lucide-react'
 
 
@@ -134,6 +135,8 @@ export default function Home() {
   const [selectedExtras, setSelectedExtras] = useState<string[]>([])
   const [bookingStep, setBookingStep] = useState(1)
   const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' })
+  const [extraNotes, setExtraNotes] = useState('')
+  const [depositConfirmed, setDepositConfirmed] = useState(false)
   const [bookingLoading, setBookingLoading] = useState(false)
 
   // Promo code state
@@ -144,10 +147,14 @@ export default function Home() {
 
 
   const insuranceOptions = [
-    { id: 'cdw', name: 'CDW+ Puno kasko', price: 15, description: 'Bez učešća u slučaju štete' },
+    { id: 'cdw', name: 'CDW+ Puno kasko', price: 15, description: 'Bez učešća u slučaju štete (Deposit 700€)' },
     { id: 'glass', name: 'Zaštita stakala i guma', price: 8, description: 'Pokriva oštećenja stakla i guma' },
-    { id: 'childseat', name: 'Dječja sjedalica', price: 5, description: 'Za djecu do 12 godina' },
-    { id: 'driver', name: 'Dodatni vozač', price: 10, description: 'Registracija drugog vozača' },
+    { id: 'infant', name: 'Sjedalica "Jaje" (do 13kg)', price: 10, description: 'Za novorođenčad' },
+    { id: 'child', name: 'Dječja sjedalica (9-18kg)', price: 10, description: 'Sigurnosna sjedalica za djecu' },
+    { id: 'booster', name: 'Booster sjedalica', price: 5, description: 'Podloška za stariju djecu' },
+    { id: 'border_eu', name: 'Prelazak EU granice', price: 50, description: 'Dozvola za vožnju unutar EU (Slo, Ita, Aut...)' },
+    { id: 'border_noneu', name: 'Prelazak non-EU granice', price: 100, description: 'BiH, Crna Gora, Albanija' },
+    { id: 'cleaning', name: 'Unaprijed plaćeno čišćenje', price: 15, description: 'Vratite auto bez brige o pranju' },
     { id: 'gps', name: 'GPS navigacija', price: 5, description: 'Uređaj za navigaciju' },
   ]
 
@@ -210,7 +217,11 @@ export default function Home() {
         pickup_date: bookingDates.from,
         return_date: bookingDates.to,
         total_price: totalPrice,
-        status: 'pending'
+        status: 'pending',
+        extra_notes: extraNotes,
+        border_crossing: selectedExtras.includes('border_eu') || selectedExtras.includes('border_noneu'),
+        cleaning_fee: selectedExtras.includes('cleaning'),
+        deposit_confirmed: depositConfirmed
       })
 
       if (error) throw error
@@ -827,7 +838,17 @@ export default function Home() {
                   </div>
                 </div>
 
-                <h3>Odaberite dodatke i osiguranje</h3>
+                <div className="deposit-notice" style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(245, 175, 25, 0.1)', border: '1px solid rgba(245, 175, 25, 0.3)', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <ShieldCheck size={24} style={{ color: '#f5af19' }} />
+                    <div>
+                      <strong style={{ color: '#f5af19', display: 'block' }}>Informacija o depozitu</strong>
+                      <p style={{ fontSize: '0.85rem', margin: 0 }}>Standardni sigurnosni polog za ovo vozilo iznosi <strong>700,00 €</strong>. Polog se autorizira na kartici ili ostavlja u gotovini prilikom preuzimanja.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <h3 style={{ marginTop: '2rem' }}>Odaberite dodatke i osiguranje</h3>
                 <div className="extras-grid">
                   {insuranceOptions.map(option => (
                     <label key={option.id} className={`extra-card ${selectedExtras.includes(option.id) ? 'selected' : ''}`}>
@@ -936,13 +957,38 @@ export default function Home() {
                     {promoError && <p style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.5rem' }}>{promoError}</p>}
                     {promoDiscount > 0 && <p style={{ color: '#22c55e', fontSize: '0.9rem', marginTop: '0.5rem', fontWeight: '600' }}>✅ Popust od {promoDiscount}% primjenjen!</p>}
                   </div>
+
+                  {/* Extra Notes */}
+                  <div className="form-group" style={{ marginTop: '1.5rem' }}>
+                    <label>Napomena (npr. dob djeteta za sjedalicu, broj leta...)</label>
+                    <textarea
+                      placeholder="Unesite dodatne informacije ovdje..."
+                      value={extraNotes}
+                      onChange={e => setExtraNotes(e.target.value)}
+                      rows={3}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.05)', color: 'white' }}
+                    ></textarea>
+                  </div>
+
+                  {/* Deposit Confirmation */}
+                  <div className="form-group" style={{ marginTop: '1rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <input
+                        type="checkbox"
+                        checked={depositConfirmed}
+                        onChange={e => setDepositConfirmed(e.target.checked)}
+                        style={{ width: '20px', height: '20px' }}
+                      />
+                      <span style={{ fontSize: '0.9rem' }}>Upoznat sam i slažem se s uvjetima o **sigurnosnom pologu (depozitu) od 700€** *</span>
+                    </label>
+                  </div>
                 </div>
                 <div className="modal-footer">
                   <button className="btn btn-secondary" onClick={() => setBookingStep(1)}>Nazad</button>
                   <button
                     className="btn btn-primary"
                     onClick={handleBookingSubmit}
-                    disabled={!customerInfo.name || !customerInfo.email || !customerInfo.phone || bookingLoading}
+                    disabled={!customerInfo.name || !customerInfo.email || !customerInfo.phone || !depositConfirmed || bookingLoading}
                   >
                     {bookingLoading ? (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -968,6 +1014,8 @@ export default function Home() {
                     setBookingModal(false)
                     setBookingStep(1)
                     setCustomerInfo({ name: '', email: '', phone: '' })
+                    setExtraNotes('')
+                    setDepositConfirmed(false)
                     setSelectedExtras([])
                   }}>
                     Zatvori

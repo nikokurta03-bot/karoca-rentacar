@@ -36,6 +36,10 @@ interface Booking {
     status: string
     created_at: string
     vehicle?: { name: string }
+    extra_notes?: string
+    border_crossing?: boolean
+    cleaning_fee?: boolean
+    deposit_confirmed?: boolean
 }
 
 interface ContactMessage {
@@ -690,7 +694,21 @@ export default function AdminPage() {
                                 {bookings.map((b) => (
                                     <tr key={b.id}>
                                         <td>{new Date(b.created_at).toLocaleDateString('hr')}</td>
-                                        <td><strong>{b.customer_name}</strong><br /><small>{b.customer_email}</small><br /><small>{b.customer_phone}</small></td>
+                                        <td>
+                                            <strong>{b.customer_name}</strong><br />
+                                            <small>{b.customer_email}</small><br />
+                                            <small>{b.customer_phone}</small>
+                                            {b.extra_notes && (
+                                                <div style={{ marginTop: '0.5rem', padding: '0.4rem', background: 'rgba(245, 175, 25, 0.1)', border: '1px solid rgba(245, 175, 25, 0.2)', borderRadius: '6px', fontSize: '0.8rem' }}>
+                                                    <strong>Napomena:</strong> {b.extra_notes}
+                                                </div>
+                                            )}
+                                            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.4rem' }}>
+                                                {b.border_crossing && <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px' }}>Granica</span>}
+                                                {b.cleaning_fee && <span style={{ fontSize: '0.7rem', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '2px 6px', borderRadius: '4px' }}>Čišćenje</span>}
+                                                {b.deposit_confirmed && <span style={{ fontSize: '0.7rem', background: 'rgba(245, 175, 25, 0.2)', color: '#f5af19', padding: '2px 6px', borderRadius: '4px' }}>Polog OK</span>}
+                                            </div>
+                                        </td>
                                         <td>{b.vehicle?.name || '-'}</td>
                                         <td>{b.pickup_date} → {b.return_date}</td>
                                         <td>{b.pickup_location}</td>
