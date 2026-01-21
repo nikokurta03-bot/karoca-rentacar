@@ -76,6 +76,14 @@ interface PromoCode {
     created_at: string
 }
 
+interface ApiKey {
+    id: string
+    partner_name: string
+    key: string
+    active: boolean
+    created_at: string
+}
+
 export default function AdminPage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [email, setEmail] = useState('')
@@ -84,7 +92,7 @@ export default function AdminPage() {
     const [loginLoading, setLoginLoading] = useState(false)
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
     const isMasterAdmin = currentUserEmail === 'niko.kurta03@karoca-rentacar.hr'
-    const [activeTab, setActiveTab] = useState<'bookings' | 'messages' | 'vehicles' | 'contract' | 'fleet' | 'promo'>('bookings')
+    const [activeTab, setActiveTab] = useState<'bookings' | 'messages' | 'vehicles' | 'contract' | 'fleet' | 'promo' | 'api'>('bookings')
 
     const [bookings, setBookings] = useState<Booking[]>([])
     const [messages, setMessages] = useState<ContactMessage[]>([])
@@ -99,6 +107,11 @@ export default function AdminPage() {
     const [newPromoCode, setNewPromoCode] = useState('')
     const [newPromoDiscount, setNewPromoDiscount] = useState(10)
     const [creatingPromo, setCreatingPromo] = useState(false)
+
+    // API Keys state
+    const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
+    const [newPartnerName, setNewPartnerName] = useState('')
+    const [creatingKey, setCreatingKey] = useState(false)
 
 
     // Contract form state
@@ -217,6 +230,9 @@ export default function AdminPage() {
         } else if (activeTab === 'promo') {
             const { data } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false })
             setPromoCodes(data || [])
+        } else if (activeTab === 'api') {
+            const { data } = await supabase.from('api_keys').select('*').order('created_at', { ascending: false })
+            setApiKeys(data || [])
         }
         setLoading(false)
     }
@@ -322,6 +338,37 @@ export default function AdminPage() {
     const copyToClipboard = (code: string) => {
         navigator.clipboard.writeText(code)
         alert(`Kopirano: ${code}`)
+    }
+
+    // API Key functions
+    const generateApiKey = async () => {
+        if (!newPartnerName.trim()) {
+            alert('Unesite naziv partnera!')
+            return
+        }
+        setCreatingKey(true)
+        try {
+            const newKey = `karoca_${Math.random().toString(36).substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`
+            const { error } = await supabase.from('api_keys').insert({
+                partner_name: newPartnerName.trim(),
+                key: newKey,
+                active: true
+            })
+            if (error) throw error
+            setNewPartnerName('')
+            fetchData()
+            alert('API ključ uspješno generiran!')
+        } catch (error: any) {
+            alert(`Greška: ${error.message}`)
+        } finally {
+            setCreatingKey(false)
+        }
+    }
+
+    const deleteApiKey = async (id: string) => {
+        if (!confirm('Jeste li sigurni da želite obrisati ovaj API ključ? Pristup partneru će biti odmah onemogućen.')) return
+        await supabase.from('api_keys').delete().eq('id', id)
+        fetchData()
     }
 
     const handleVehicleChange = (vehicleId: string) => {
@@ -616,6 +663,9 @@ export default function AdminPage() {
                     </button>
                     <button className={activeTab === 'promo' ? 'active' : ''} onClick={() => setActiveTab('promo')}>
                         <Tag size={18} /> Promo
+                    </button>
+                    <button className={activeTab === 'api' ? 'active' : ''} onClick={() => setActiveTab('api')}>
+                        <Settings size={18} /> API
                     </button>
                 </div>
                 <div className="nav-user">
@@ -1012,6 +1062,86 @@ export default function AdminPage() {
                                         </td>
                                     </tr>
                                 ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : activeTab === 'api' ? (
+                    <div className="table-container">
+                        <h2><Settings size={20} /> API Integracija ({apiKeys.length})</h2>
+
+                        {/* Create new API Key */}
+                        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
+                            <h3 style={{ marginBottom: '1rem', color: '#3b82f6' }}>Generiraj novi API ključ za partnera</h3>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                <div className="input-group" style={{ flex: 1, minWidth: '300px' }}>
+                                    <label>Naziv partnera / OTA kanala</label>
+                                    <input
+                                        type="text"
+                                        placeholder="npr. Booking.com, Rentalcars, Lokalna Agencija..."
+                                        value={newPartnerName}
+                                        onChange={e => setNewPartnerName(e.target.value)}
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={generateApiKey}
+                                    disabled={creatingKey}
+                                    style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                >
+                                    {creatingKey ? <Loader2 className="spin" size={18} /> : <Plus size={18} />}
+                                    Generiraj Ključ
+                                </button>
+                            </div>
+                            <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '1rem' }}>
+                                <Settings size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                                Endpoint URL: <code>{typeof window !== 'undefined' ? `${window.location.origin}/api/v1/vehicles` : '/api/v1/vehicles'}</code>
+                            </p>
+                        </div>
+
+                        {/* API Keys Table */}
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Partner</th>
+                                    <th>API Ključ</th>
+                                    <th>Status</th>
+                                    <th>Kreirano</th>
+                                    <th>Akcije</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {apiKeys.map((k) => (
+                                    <tr key={k.id}>
+                                        <td><strong>{k.partner_name}</strong></td>
+                                        <td>
+                                            <code>{k.key}</code>
+                                            <button
+                                                onClick={() => copyToClipboard(k.key)}
+                                                style={{ marginLeft: '0.5rem', padding: '0.25rem', background: 'transparent', border: 'none', color: '#888', cursor: 'pointer' }}
+                                            >
+                                                <Copy size={14} />
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <span className={`status ${k.active ? 'status-confirmed' : 'status-cancelled'}`}>
+                                                {k.active ? 'Aktivan' : 'Neaktivan'}
+                                            </span>
+                                        </td>
+                                        <td>{new Date(k.created_at).toLocaleDateString('hr')}</td>
+                                        <td>
+                                            <button className="btn-delete" onClick={() => deleteApiKey(k.id)}>
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {apiKeys.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
+                                            Nema generiranih API ključeva.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
