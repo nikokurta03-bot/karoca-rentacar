@@ -23,7 +23,8 @@ import {
   Loader2,
   Briefcase,
   Send,
-  MessageCircle
+  MessageCircle,
+  Luggage
 } from 'lucide-react'
 
 
@@ -438,9 +439,22 @@ export default function Home() {
                     </div>
 
                     <div className="vehicle-specs">
-                      <span><Users size={16} /> {vehicle.seats}</span>
-                      <span><Settings size={16} /> {vehicle.transmission}</span>
-                      <span><Fuel size={16} /> {vehicle.fuel_type}</span>
+                      <div className="spec-item">
+                        <Users size={18} />
+                        <span>{vehicle.seats} osoba</span>
+                      </div>
+                      <div className="spec-item">
+                        <Settings size={18} />
+                        <span>{vehicle.transmission}</span>
+                      </div>
+                      <div className="spec-item">
+                        <Fuel size={18} />
+                        <span>{vehicle.fuel_type}</span>
+                      </div>
+                      <div className="spec-item">
+                        <Luggage size={18} />
+                        <span>2 kofera</span>
+                      </div>
                     </div>
 
                     <div className="vehicle-features">

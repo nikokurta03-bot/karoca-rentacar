@@ -331,6 +331,36 @@ section {
   }
 }
 
+/* Vehicle Spec Items */
+.spec-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.spec-item svg {
+  color: var(--silver);
+  flex-shrink: 0;
+}
+
+.vehicle-specs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+@media (max-width: 480px) {
+  .vehicle-specs {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* Grid */
 .grid {
   display: grid;
