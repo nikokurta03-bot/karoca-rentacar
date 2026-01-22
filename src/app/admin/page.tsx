@@ -718,7 +718,7 @@ export default function AdminPage() {
                                         <td>
                                             {b.pickup_date} <br /> ↓ <br /> {b.return_date}
                                         </td>
-                                        <td>
+                                        <td title={`DEBUG RAW: ${JSON.stringify(b.selected_extras)}`}>
                                             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', maxWidth: '200px' }}>
                                                 {/* POLOG - High visibility */}
                                                 {(b.deposit_confirmed) && <span style={{ fontSize: '0.7rem', background: '#f5af19', color: '#000', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>POLOG OK</span>}

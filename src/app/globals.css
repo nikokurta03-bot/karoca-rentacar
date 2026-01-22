@@ -485,3 +485,54 @@ section {
   pointer-events: none;
   opacity: 0.5;
 }
+
+/* Loading Skeleton */
+.skeleton {
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 12px;
+}
+
+.skeleton-card {
+  height: 350px;
+  border-radius: 20px;
+}
+
+.skeleton-text {
+  height: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-text.short {
+  width: 60%;
+}
+
+.skeleton-title {
+  height: 1.5rem;
+  width: 80%;
+  margin-bottom: 1rem;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Page Ready Transition */
+.page-loading {
+  opacity: 0;
+}
+
+.page-ready {
+  opacity: 1;
+  transition: opacity 0.3s ease-out;
+}

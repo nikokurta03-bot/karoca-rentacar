@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import {
   Car,
@@ -260,8 +261,8 @@ export default function Home() {
       {/* Navigation */}
       <nav className="nav">
         <div className="container nav-container">
-          <a href="/" className="logo">
-            <img src="/karoca-logo-new.png" alt="Karoca Rent A Car" className="logo-img" />
+          <a href="/" className="logo" aria-label="Karoca Rent A Car - Povratak na naslovnicu">
+            <Image src="/karoca-logo-new.png" alt="Karoca Rent A Car logo - Premium najam vozila u Zadru" className="logo-img" width={150} height={50} priority />
           </a>
 
 
@@ -278,11 +279,11 @@ export default function Home() {
 
 
           <div className="nav-actions">
-            <a href="tel:+385991655885" className="nav-phone">
-              <Phone size={18} />
+            <a href="tel:+385991655885" className="nav-phone" aria-label="Nazovite nas na +385 99 165 5885">
+              <Phone size={18} aria-hidden="true" />
               <span>+385 99 165 5885</span>
             </a>
-            <button className="btn btn-primary btn-nav">
+            <button className="btn btn-primary btn-nav" aria-label="Rezervirajte vozilo">
               Rezerviraj
             </button>
           </div>
@@ -290,8 +291,10 @@ export default function Home() {
           <button
             className="mobile-menu-btn"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? 'Zatvori navigacijski izbornik' : 'Otvori navigacijski izbornik'}
+            aria-expanded={mobileMenuOpen}
           >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {mobileMenuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
           </button>
         </div>
       </nav>
@@ -310,9 +313,9 @@ export default function Home() {
             </div>
 
             <h1 className="hero-title">
-              Vozite stanje.
+              Moderno putovanje
               <br />
-              <span className="gradient-text">Platite manje.</span>
+              <span className="gradient-text">s dalmatinskom dušom.</span>
             </h1>
 
             <p className="hero-description">
@@ -427,10 +430,22 @@ export default function Home() {
           {/* Vehicle Grid */}
           <div className="vehicles-grid grid grid-3">
             {loading ? (
-              <div className="loading-state">
-                <Loader2 className="spinner" size={40} />
-                <p>Učitavanje vozila...</p>
-              </div>
+              <>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="vehicle-card card" style={{ pointerEvents: 'none' }}>
+                    <div className="skeleton skeleton-card" style={{ height: '180px', marginBottom: '1rem' }}></div>
+                    <div className="vehicle-content">
+                      <div className="skeleton skeleton-title"></div>
+                      <div className="skeleton skeleton-text"></div>
+                      <div className="skeleton skeleton-text short"></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
+                        <div className="skeleton" style={{ width: '80px', height: '2rem' }}></div>
+                        <div className="skeleton" style={{ width: '100px', height: '2.5rem' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
             ) : vehicles.length === 0 ? (
               <div className="empty-state">
                 <p>Nema dostupnih vozila.</p>
@@ -442,7 +457,7 @@ export default function Home() {
                 <div key={vehicle.id} className="vehicle-card card">
                   <div className="vehicle-image">
                     {(vehicle.image_url?.startsWith('http') || vehicle.image_url?.startsWith('/')) ? (
-                      <img src={vehicle.image_url} alt={vehicle.name} className="vehicle-img" />
+                      <Image src={vehicle.image_url} alt={vehicle.name} className="vehicle-img" width={400} height={250} loading="lazy" />
                     ) : (
                       <span className="vehicle-emoji">{vehicle.image_url}</span>
                     )}
@@ -501,6 +516,7 @@ export default function Home() {
                           setSelectedExtras([])
                           setBookingModal(true)
                         }}
+                        aria-label={`Rezerviraj ${vehicle.name}`}
                       >
                         Rezerviraj
                       </button>
@@ -756,7 +772,7 @@ export default function Home() {
           <div className="footer-top">
             <div className="footer-brand">
               <a href="/" className="logo">
-                <img src="/karoca-logo-new.png" alt="Karoca Rent A Car" className="logo-img" />
+                <Image src="/karoca-logo-new.png" alt="Karoca Rent A Car" className="logo-img" width={150} height={50} loading="lazy" />
               </a>
 
 
@@ -828,7 +844,7 @@ export default function Home() {
                 <div className="booking-summary">
                   <div className="summary-vehicle">
                     {selectedVehicle.image_url?.startsWith('http') || selectedVehicle.image_url?.startsWith('/') ? (
-                      <img src={selectedVehicle.image_url} alt={selectedVehicle.name} className="vehicle-img-summary" style={{ width: '80px', height: 'auto', borderRadius: '8px' }} />
+                      <Image src={selectedVehicle.image_url} alt={selectedVehicle.name} className="vehicle-img-summary" width={80} height={50} style={{ borderRadius: '8px' }} />
                     ) : (
                       <span className="vehicle-emoji-large">{selectedVehicle.image_url}</span>
                     )}
