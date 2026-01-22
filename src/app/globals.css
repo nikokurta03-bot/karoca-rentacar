@@ -15,6 +15,24 @@
   --gradient-dark: linear-gradient(180deg, #0b1d3d 0%, #071126 100%);
 }
 
+/* Light Mode */
+[data-theme="light"] {
+  --primary: #f8fafc;
+  --primary-light: #e2e8f0;
+  --accent: #0b1d3d;
+  --accent-glow: rgba(11, 29, 61, 0.2);
+  --silver: #475569;
+  --silver-light: #64748b;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --bg-dark: #ffffff;
+  --bg-card: rgba(241, 245, 249, 0.9);
+  --border: rgba(0, 0, 0, 0.1);
+  --gradient-primary: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  --gradient-accent: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  --gradient-dark: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+}
+
 
 * {
   margin: 0;
@@ -206,6 +224,26 @@ section {
   font-size: 1.125rem;
   max-width: 600px;
   margin: 0 auto 4rem;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text);
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--gradient-accent);
+  transform: rotate(20deg);
 }
 
 /* Google Reviews Styles */

@@ -26,7 +26,9 @@ import {
   Send,
   MessageCircle,
   Luggage,
-  ShieldCheck
+  ShieldCheck,
+  Sun,
+  Moon
 } from 'lucide-react'
 
 
@@ -129,6 +131,10 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [newsletterEmail, setNewsletterEmail] = useState('')
 
+  // Theme state (auto by time of day, with manual override)
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [themeOverride, setThemeOverride] = useState<boolean>(false)
+
   // Booking state
   const [bookingModal, setBookingModal] = useState(false)
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
@@ -181,6 +187,34 @@ export default function Home() {
 
     fetchVehicles()
   }, [])
+
+  // Automatic theme based on time of day
+  useEffect(() => {
+    // Check localStorage for user preference
+    const savedTheme = localStorage.getItem('theme-override')
+    if (savedTheme) {
+      setTheme(savedTheme as 'dark' | 'light')
+      setThemeOverride(true)
+    } else {
+      // Auto-detect based on time (06:00-18:00 = light, else dark)
+      const hour = new Date().getHours()
+      const isDay = hour >= 6 && hour < 18
+      setTheme(isDay ? 'light' : 'dark')
+    }
+  }, [])
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
+
+  // Toggle theme function
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(newTheme)
+    setThemeOverride(true)
+    localStorage.setItem('theme-override', newTheme)
+  }
 
   // Scroll animation observer
   useEffect(() => {
@@ -299,6 +333,13 @@ export default function Home() {
 
 
           <div className="nav-actions">
+            <button
+              className="theme-toggle"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Prebaci na svjetlu temu' : 'Prebaci na tamnu temu'}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             <a href="tel:+385991655885" className="nav-phone" aria-label="Nazovite nas na +385 99 165 5885">
               <Phone size={18} aria-hidden="true" />
               <span>+385 99 165 5885</span>
