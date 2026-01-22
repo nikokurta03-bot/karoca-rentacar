@@ -477,7 +477,7 @@ export default function Home() {
                 <div key={vehicle.id} className="vehicle-card card">
                   <div className="vehicle-image">
                     {(vehicle.image_url?.startsWith('http') || vehicle.image_url?.startsWith('/')) ? (
-                      <Image src={vehicle.image_url} alt={vehicle.name} className="vehicle-img" width={400} height={250} loading="lazy" />
+                      <Image src={vehicle.image_url} alt={vehicle.name} className="vehicle-img" width={400} height={250} loading="lazy" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
                     ) : (
                       <span className="vehicle-emoji">{vehicle.image_url}</span>
                     )}
