@@ -209,30 +209,25 @@ export default function Home() {
     }
 
     try {
-      // Use API route to send booking + confirmation email
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vehicle_id: selectedVehicle.id,
-          customer_name: customerInfo.name,
-          customer_email: customerInfo.email,
-          customer_phone: customerInfo.phone,
-          pickup_location: bookingDates.location,
-          pickup_date: bookingDates.from,
-          return_date: bookingDates.to,
-          total_price: totalPrice,
-          extra_notes: extraNotes,
-          deposit_confirmed: depositConfirmed,
-          selected_extras: selectedExtras
-        })
+      // Direct Supabase insert - email confirmation handled separately
+      const { error } = await supabase.from('bookings').insert({
+        vehicle_id: selectedVehicle.id,
+        customer_name: customerInfo.name,
+        customer_email: customerInfo.email,
+        customer_phone: customerInfo.phone,
+        pickup_location: bookingDates.location,
+        pickup_date: bookingDates.from,
+        return_date: bookingDates.to,
+        total_price: totalPrice,
+        status: 'pending',
+        extra_notes: extraNotes,
+        border_crossing: selectedExtras.includes('border_eu') || selectedExtras.includes('border_noneu'),
+        cleaning_fee: selectedExtras.includes('cleaning'),
+        deposit_confirmed: depositConfirmed,
+        selected_extras: selectedExtras
       })
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Booking failed')
-      }
-
+      if (error) throw error
       setBookingStep(3)
     } catch (error) {
       alert('Došlo je do pogreške pri slanju rezervacije. Molimo pokušajte ponovo.')
