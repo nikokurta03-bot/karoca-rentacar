@@ -1464,10 +1464,13 @@ export default function Home() {
         }
         
         .vehicle-image {
-          background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+          background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
           text-align: center;
           position: relative;
-          height: 180px;
+          height: 200px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           overflow: hidden;
         }
         
@@ -1478,7 +1481,7 @@ export default function Home() {
         .vehicle-img {
           width: 100%;
           height: 100%;
-          object-fit: cover;
+          object-fit: contain !important;
         }
         
 
