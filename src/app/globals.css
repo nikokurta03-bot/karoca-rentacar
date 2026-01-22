@@ -94,6 +94,101 @@
   color: #0f172a;
 }
 
+/* Additional light mode overrides */
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] h4,
+[data-theme="light"] h5,
+[data-theme="light"] h6 {
+  color: #0f172a;
+}
+
+[data-theme="light"] p,
+[data-theme="light"] span,
+[data-theme="light"] li {
+  color: #334155;
+}
+
+[data-theme="light"] .feature-card,
+[data-theme="light"] .vehicle-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .feature-card h4,
+[data-theme="light"] .feature-card p {
+  color: #0f172a;
+}
+
+[data-theme="light"] .feature-icon {
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  color: #1e3a8a;
+}
+
+[data-theme="light"] .faq-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .faq-question,
+[data-theme="light"] .faq-answer {
+  color: #0f172a;
+}
+
+[data-theme="light"] .btn-secondary {
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #94a3b8;
+}
+
+[data-theme="light"] .price-amount {
+  color: #0f172a;
+}
+
+[data-theme="light"] .price-period {
+  color: #64748b;
+}
+
+[data-theme="light"] .vehicle-specs span {
+  color: #475569;
+}
+
+[data-theme="light"] .badge {
+  background: rgba(30, 58, 138, 0.1);
+  color: #1e3a8a;
+}
+
+[data-theme="light"] .hero-badge {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .long-term-section,
+[data-theme="light"] .features,
+[data-theme="light"] .vehicles,
+[data-theme="light"] .faq,
+[data-theme="light"] .contact {
+  background: #f8fafc;
+}
+
+[data-theme="light"] .cta-section {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+}
+
 
 * {
   margin: 0;
