@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { sendBookingConfirmation } from '@/lib/email'
 
 export async function POST(request: Request) {
     try {
@@ -13,7 +14,10 @@ export async function POST(request: Request) {
             pickup_location,
             pickup_date,
             return_date,
-            total_price
+            total_price,
+            selected_extras,
+            extra_notes,
+            deposit_confirmed
         } = body
 
         // Validate required fields
@@ -23,6 +27,13 @@ export async function POST(request: Request) {
                 { status: 400 }
             )
         }
+
+        // Get vehicle name for email
+        const { data: vehicle } = await supabase
+            .from('vehicles')
+            .select('name')
+            .eq('id', vehicle_id)
+            .single()
 
         const { data, error } = await supabase
             .from('bookings')
@@ -35,6 +46,9 @@ export async function POST(request: Request) {
                 pickup_date,
                 return_date,
                 total_price,
+                selected_extras: selected_extras || [],
+                extra_notes: extra_notes || '',
+                deposit_confirmed: deposit_confirmed || false,
                 status: 'pending'
             }])
             .select()
@@ -42,6 +56,23 @@ export async function POST(request: Request) {
 
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 })
+        }
+
+        // Send confirmation email (don't block on failure)
+        try {
+            await sendBookingConfirmation({
+                customerName: customer_name,
+                customerEmail: customer_email,
+                vehicleName: vehicle?.name || 'Vozilo',
+                pickupDate: pickup_date,
+                returnDate: return_date,
+                pickupLocation: pickup_location,
+                totalPrice: total_price,
+                selectedExtras: selected_extras
+            })
+        } catch (emailError) {
+            console.error('Failed to send confirmation email:', emailError)
+            // Don't fail the booking if email fails
         }
 
         return NextResponse.json({
