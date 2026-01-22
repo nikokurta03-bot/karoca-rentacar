@@ -26,11 +26,72 @@
   --text: #0f172a;
   --text-muted: #64748b;
   --bg-dark: #ffffff;
-  --bg-card: rgba(241, 245, 249, 0.9);
+  --bg-card: rgba(241, 245, 249, 0.95);
   --border: rgba(0, 0, 0, 0.1);
   --gradient-primary: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   --gradient-accent: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
   --gradient-dark: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+}
+
+/* Light mode specific overrides */
+[data-theme="light"] .nav {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .nav-links a {
+  color: #0f172a;
+}
+
+[data-theme="light"] .hero {
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+[data-theme="light"] .hero-title,
+[data-theme="light"] .section-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .hero-description,
+[data-theme="light"] .section-subtitle {
+  color: #64748b;
+}
+
+[data-theme="light"] .gradient-text {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+[data-theme="light"] .card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .card h3,
+[data-theme="light"] .card h4,
+[data-theme="light"] .vehicle-name {
+  color: #0f172a;
+}
+
+[data-theme="light"] .card p,
+[data-theme="light"] .vehicle-description {
+  color: #64748b;
+}
+
+[data-theme="light"] .footer {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+[data-theme="light"] .footer a,
+[data-theme="light"] .footer p {
+  color: #cbd5e1;
+}
+
+[data-theme="light"] .nav-phone {
+  color: #0f172a;
 }
 
 
