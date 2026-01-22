@@ -2,42 +2,42 @@ import { Resend } from 'resend'
 
 // Lazy initialization to avoid build errors when API key is not set
 function getResendClient() {
-    const apiKey = process.env.RESEND_API_KEY
-    if (!apiKey) {
-        console.warn('RESEND_API_KEY not configured - emails will not be sent')
-        return null
-    }
-    return new Resend(apiKey)
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    console.warn('RESEND_API_KEY not configured - emails will not be sent')
+    return null
+  }
+  return new Resend(apiKey)
 }
 
 interface BookingEmailData {
-    customerName: string
-    customerEmail: string
-    vehicleName: string
-    pickupDate: string
-    returnDate: string
-    pickupLocation: string
-    totalPrice: number
-    selectedExtras?: string[]
+  customerName: string
+  customerEmail: string
+  vehicleName: string
+  pickupDate: string
+  returnDate: string
+  pickupLocation: string
+  totalPrice: number
+  selectedExtras?: string[]
 }
 
 export async function sendBookingConfirmation(data: BookingEmailData) {
-    const {
-        customerName,
-        customerEmail,
-        vehicleName,
-        pickupDate,
-        returnDate,
-        pickupLocation,
-        totalPrice,
-        selectedExtras = []
-    } = data
+  const {
+    customerName,
+    customerEmail,
+    vehicleName,
+    pickupDate,
+    returnDate,
+    pickupLocation,
+    totalPrice,
+    selectedExtras = []
+  } = data
 
-    const extrasText = selectedExtras.length > 0
-        ? selectedExtras.join(', ')
-        : 'Bez dodataka'
+  const extrasText = selectedExtras.length > 0
+    ? selectedExtras.join(', ')
+    : 'Bez dodataka'
 
-    const emailHtml = `
+  const emailHtml = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -141,27 +141,27 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
     </html>
   `
 
-    const resend = getResendClient()
-    if (!resend) {
-        return { success: false, error: 'Email service not configured' }
+  const resend = getResendClient()
+  if (!resend) {
+    return { success: false, error: 'Email service not configured' }
+  }
+
+  try {
+    const { data: emailData, error } = await resend.emails.send({
+      from: 'Karoca Rent A Car <onboarding@resend.dev>',
+      to: customerEmail,
+      subject: `Potvrda rezervacije - ${vehicleName}`,
+      html: emailHtml,
+    })
+
+    if (error) {
+      console.error('Email send error:', error)
+      return { success: false, error }
     }
 
-    try {
-        const { data: emailData, error } = await resend.emails.send({
-            from: 'Karoca Rent A Car <noreply@karoca-rentacar.hr>',
-            to: customerEmail,
-            subject: `Potvrda rezervacije - ${vehicleName}`,
-            html: emailHtml,
-        })
-
-        if (error) {
-            console.error('Email send error:', error)
-            return { success: false, error }
-        }
-
-        return { success: true, data: emailData }
-    } catch (error) {
-        console.error('Email send exception:', error)
-        return { success: false, error }
-    }
+    return { success: true, data: emailData }
+  } catch (error) {
+    console.error('Email send exception:', error)
+    return { success: false, error }
+  }
 }
