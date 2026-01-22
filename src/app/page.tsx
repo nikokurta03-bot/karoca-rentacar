@@ -182,6 +182,25 @@ export default function Home() {
     fetchVehicles()
   }, [])
 
+  // Scroll animation observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-in')
+          }
+        })
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    )
+
+    const animatedElements = document.querySelectorAll('.scroll-animate, .scroll-animate-left, .scroll-animate-right, .scroll-animate-scale')
+    animatedElements.forEach((el) => observer.observe(el))
+
+    return () => observer.disconnect()
+  }, [loading])
+
   const filteredVehicles = selectedCategory === 'Svi'
     ? vehicles
     : vehicles.filter((v: Vehicle) => v.category === selectedCategory)
@@ -408,7 +427,7 @@ export default function Home() {
         <div className="container">
           <div className="features-grid grid grid-4">
             {features.map((feature, index) => (
-              <div key={index} className="feature-card card">
+              <div key={index} className="feature-card card scroll-animate" style={{ transitionDelay: `${index * 100}ms` }}>
                 <div className="feature-icon">
                   <feature.icon size={28} />
                 </div>
@@ -423,8 +442,8 @@ export default function Home() {
       {/* Vehicles Section */}
       <section id="vozila" className="vehicles">
         <div className="container">
-          <h2 className="section-title">Naša flota vozila</h2>
-          <p className="section-subtitle">
+          <h2 className="section-title scroll-animate">Naša flota vozila</h2>
+          <p className="section-subtitle scroll-animate">
             Odaberite savršeno vozilo za vaše potrebe
           </p>
 
