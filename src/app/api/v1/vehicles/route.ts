@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { serverDb } from '@/lib/server-db'
+import { publicVehicleFields } from '@/lib/booking'
 
 export async function GET(request: Request) {
+    let supabase
+    try { supabase = serverDb() } catch { return NextResponse.json({ error: "Service unavailable" }, { status: 503 }) }
     // 1. Check API Key
     const apiKey = request.headers.get('x-api-key')
 
@@ -30,7 +33,7 @@ export async function GET(request: Request) {
     // 3. Fetch Vehicles
     const { data: vehicles, error: vehiclesError } = await supabase
         .from('vehicles')
-        .select('*')
+        .select(publicVehicleFields)
         .eq('available', true)
 
     if (vehiclesError) {

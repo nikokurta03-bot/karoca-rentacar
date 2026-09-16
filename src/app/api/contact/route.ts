@@ -1,48 +1,16 @@
+import { readFormJson } from '@/lib/request'
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-
+import { serverDb } from '@/lib/server-db'
 export async function POST(request: Request) {
-    try {
-        const body = await request.json()
-
-        const { name, email, message } = body
-
-        // Validate required fields
-        if (!name || !email || !message) {
-            return NextResponse.json(
-                { error: 'Name, email, and message are required' },
-                { status: 400 }
-            )
-        }
-
-        // Basic email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!emailRegex.test(email)) {
-            return NextResponse.json(
-                { error: 'Invalid email format' },
-                { status: 400 }
-            )
-        }
-
-        const { data, error } = await supabase
-            .from('contact_messages')
-            .insert([{ name, email, message }])
-            .select()
-            .single()
-
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 })
-        }
-
-        return NextResponse.json({
-            message: 'Message sent successfully',
-            data
-        }, { status: 201 })
-
-    } catch (error) {
-        return NextResponse.json(
-            { error: 'Invalid request body' },
-            { status: 400 }
-        )
-    }
+  let body: Record<string, any>
+  try {
+    body = await readFormJson(request)
+    if (!body || ['name', 'email', 'message'].some(k => typeof body[k] !== 'string' || !body[k].trim())) throw new Error()
+    if (body.name.length > 255 || body.email.length > 255 || body.message.length > 4000 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) throw new Error()
+  } catch { return NextResponse.json({ error: 'Provjerite ime, email i poruku.' }, { status: 400 }) }
+  try {
+    const { error } = await serverDb().from('contact_messages').insert({ name: body.name.trim(), email: body.email.trim(), message: body.message.trim() })
+    if (error) throw error
+    return NextResponse.json({ success: true }, { status: 201 })
+  } catch { return NextResponse.json({ error: 'Poruka nije spremljena. Molimo pokušajte kasnije.' }, { status: 503 }) }
 }

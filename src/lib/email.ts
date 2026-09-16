@@ -1,6 +1,8 @@
 import { Resend } from 'resend'
 
 // Lazy initialization to avoid build errors when API key is not set
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
+
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
@@ -43,7 +45,7 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Potvrda rezervacije - Karoca Rent A Car</title>
+      <title>Zaprimljen upit za najam - Karoca Rent A Car</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
@@ -55,16 +57,16 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
               <tr>
                 <td style="background: linear-gradient(135deg, #0b1d3d 0%, #162a4d 100%); padding: 40px; text-align: center;">
                   <h1 style="color: #ffffff; margin: 0; font-size: 28px;">🚗 Karoca Rent A Car</h1>
-                  <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0 0; font-size: 16px;">Potvrda rezervacije</p>
+                  <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0 0; font-size: 16px;">Zaprimljen upit za najam</p>
                 </td>
               </tr>
               
               <!-- Content -->
               <tr>
                 <td style="padding: 40px;">
-                  <h2 style="color: #0b1d3d; margin: 0 0 20px 0;">Poštovani ${customerName},</h2>
+                  <h2 style="color: #0b1d3d; margin: 0 0 20px 0;">Poštovani ${escapeHtml(customerName)},</h2>
                   <p style="color: #666; line-height: 1.6; margin: 0 0 30px 0;">
-                    Hvala vam na rezervaciji! Vaša rezervacija je uspješno zaprimljena i uskoro ćemo vas kontaktirati za potvrdu detalja.
+                    Vaš upit je zaprimljen. Najam još nije potvrđen; javit ćemo vam se s potvrdom dostupnosti i uvjeta.
                   </p>
                   
                   <!-- Booking Details -->
@@ -76,23 +78,23 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
                         <table width="100%" cellpadding="8" cellspacing="0">
                           <tr>
                             <td style="color: #666; width: 40%;">Vozilo:</td>
-                            <td style="color: #0b1d3d; font-weight: 600;">${vehicleName}</td>
+                            <td style="color: #0b1d3d; font-weight: 600;">${escapeHtml(vehicleName)}</td>
                           </tr>
                           <tr>
                             <td style="color: #666;">Preuzimanje:</td>
-                            <td style="color: #0b1d3d; font-weight: 600;">${pickupDate}</td>
+                            <td style="color: #0b1d3d; font-weight: 600;">${escapeHtml(pickupDate)}</td>
                           </tr>
                           <tr>
                             <td style="color: #666;">Povrat:</td>
-                            <td style="color: #0b1d3d; font-weight: 600;">${returnDate}</td>
+                            <td style="color: #0b1d3d; font-weight: 600;">${escapeHtml(returnDate)}</td>
                           </tr>
                           <tr>
                             <td style="color: #666;">Lokacija:</td>
-                            <td style="color: #0b1d3d; font-weight: 600;">${pickupLocation}</td>
+                            <td style="color: #0b1d3d; font-weight: 600;">${escapeHtml(pickupLocation)}</td>
                           </tr>
                           <tr>
                             <td style="color: #666;">Dodaci:</td>
-                            <td style="color: #0b1d3d;">${extrasText}</td>
+                            <td style="color: #0b1d3d;">${escapeHtml(extrasText)}</td>
                           </tr>
                         </table>
                         
@@ -129,7 +131,7 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
                 <td style="background-color: #f8fafc; padding: 30px; text-align: center;">
                   <p style="color: #666; margin: 0; font-size: 14px;">Karoca Rent A Car</p>
                   <p style="color: #999; margin: 5px 0 0 0; font-size: 12px;">Obala kneza Branimira 1, 23000 Zadar</p>
-                  <p style="color: #999; margin: 5px 0 0 0; font-size: 12px;">info@karoca.hr | +385 99 165 5885</p>
+                  <p style="color: #999; margin: 5px 0 0 0; font-size: 12px;">info@karoca-rentacar.hr | +385 99 165 5885</p>
                 </td>
               </tr>
               
@@ -142,15 +144,15 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
   `
 
   const resend = getResendClient()
-  if (!resend) {
+  if (!resend || !process.env.RESEND_FROM_EMAIL) {
     return { success: false, error: 'Email service not configured' }
   }
 
   try {
     const { data: emailData, error } = await resend.emails.send({
-      from: 'Karoca Rent A Car <onboarding@resend.dev>',
+      from: process.env.RESEND_FROM_EMAIL,
       to: customerEmail,
-      subject: `Potvrda rezervacije - ${vehicleName}`,
+      subject: `Zaprimljen upit za najam - ${escapeHtml(vehicleName)}`,
       html: emailHtml,
     })
 
