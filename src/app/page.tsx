@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
+import BookingExtras, { BookingPriceBreakdown } from '@/components/BookingExtras'
+import { rentalDays, rentalTotal } from '@/lib/booking'
+import { bookingOpensOn, fleetPlan } from '@/lib/business'
 import {
   Car,
   MapPin,
@@ -50,74 +52,43 @@ interface Vehicle {
 const features = [
   {
     icon: Shield,
-    title: 'Potpuno osigurano',
-    description: 'Sva vozila su u potpunosti osigurana za vašu sigurnost i mir.',
+    title: 'Jasni uvjeti najma',
+    description: 'Prije potvrde provjerite cijenu, polog i odabrano osiguranje.',
   },
   {
     icon: Clock,
-    title: '24/7 Podrška',
-    description: 'Naš tim je dostupan non-stop za sve vaše potrebe i pitanja.',
+    title: 'Izravan kontakt',
+    description: 'Kontaktirajte nas telefonom ili pošaljite poruku.',
   },
   {
     icon: MapPin,
-    title: 'Besplatna dostava',
-    description: 'Besplatna dostava vozila na aerodrom ili željenu lokaciju.',
+    title: 'Preuzimanje u Zadru',
+    description: 'U upitu odaberite zračnu luku ili lokaciju u gradu.',
   },
   {
     icon: Star,
     title: 'Premium vozila',
-    description: 'Samo vozila vrhunske kvalitete u našoj floti.',
-  },
-]
-
-const testimonials = [
-  {
-    name: 'Marko Horvat',
-    role: 'Zadar Airport',
-    date: 'Prije tjedan dana',
-    content: 'Izuzetna usluga! Vozilo je bilo besprijekorno čisto i dostavljeno na vrijeme na aerodrom. Komunikacija preko WhatsApp-a je bila izvrsna.',
-    rating: 5,
-  },
-  {
-    name: 'Sarah Jennings',
-    role: 'Turistica',
-    date: 'Prije mjesec dana',
-    content: 'Karoca made our trip to Zadar so much easier. The pickup was smooth and the car was in perfect condition. Great value for money!',
-    rating: 5,
-  },
-  {
-    name: 'Ivan Jurić',
-    role: 'Lokalni korisnik',
-    date: 'Prije 3 mjeseca',
-    content: 'Najpouzdaniji rent-a-car u Zadru. Koristim ih redovito i nikad nisam imao nikakvih problema. Transparentno i bez skrivenih troškova.',
-    rating: 5,
+    description: 'Usporedite vozila, opremu i prikazane dnevne cijene.',
   },
 ]
 
 const howItWorks = [
-  { step: '01', title: 'Rezervirajte online', description: 'Odaberite vozilo, datume i lokaciju. Potvrda stiže odmah na email.' },
+  { step: '01', title: 'Rezervirajte online', description: 'Odaberite datume i vozilo te pošaljite upit. Javit ćemo vam dostupnost i uvjete najma.' },
   { step: '02', title: 'Preuzmite vozilo', description: 'Dođite na lokaciju s vozačkom dozvolom. Pregledamo vozilo zajedno.' },
-  { step: '03', title: 'Uživajte u vožnji', description: 'Istražite Zadar i okolicu. Dostupni smo 24/7 za sva pitanja.' },
+  { step: '03', title: 'Uživajte u vožnji', description: 'Istražite Zadar i okolicu. Za pitanja nam se obratite izravno.' },
   { step: '04', title: 'Jednostavan povrat', description: 'Vratite vozilo na istu lokaciju. Brza provjera - bez skrivenih troškova.' },
 ]
 
 const faqItems = [
   { question: 'Koje dokumente trebam za najam?', answer: 'Potrebna vam je važeća vozačka dozvola (min. 2 godine), osobna iskaznica ili putovnica, te kartica za polog.' },
-  { question: 'Mogu li preuzeti vozilo na aerodromu?', answer: 'Da! Nudimo besplatnu dostavu na Zadarsku zračnu luku. Javite nam broj leta i dočekat ćemo vas.' },
-  { question: 'Što ako zakasnim s povratom?', answer: 'Toleriramo kašnjenje do 1 sat. Za duže kašnjenje, molimo kontaktirajte nas unaprijed.' },
+  { question: 'Mogu li preuzeti vozilo na aerodromu?', answer: 'U upitu možete odabrati Zadarsku zračnu luku. Vrijeme i uvjete preuzimanja dogovaramo pri potvrdi.' },
+  { question: 'Što ako zakasnim s povratom?', answer: 'Javite nam se čim znate da ćete kasniti kako bismo dogovorili povrat i provjerili eventualnu dodatnu naknadu.' },
   { question: 'Je li gorivo uključeno u cijenu?', answer: 'Vozilo preuzimate puno i vraćate puno. Ako vratite s manje goriva, naplatit ćemo razliku.' },
-  { question: 'Koliki je polog?', answer: 'Standardni polog iznosi 200-500€ ovisno o vozilu. Vraća se u cijelosti nakon povrata.' },
+  { question: 'Koliki je polog?', answer: 'Iznos i uvjete pologa potvrđujemo u ponudi za odabrano vozilo prije rezervacije.' },
   { question: 'Mogu li voziti izvan Hrvatske?', answer: 'Da, uz prethodnu najavu. Vožnja u EU zemlje je dozvoljena uz dodatnu dokumentaciju.' },
 ]
 
-const longTermBenefits = [
-  'Popusti do 40% za mjesečni najam',
-  'Zamjensko vozilo uključeno',
-  'Servis i održavanje uključeno',
-  'Fleksibilni uvjeti plaćanja',
-  'Personalizirani account manager',
-  'Prioritetna podrška 24/7',
-]
+const longTermBenefits = ['Ponuda prema trajanju najma', 'Odabir vozila prema poslovnim potrebama', 'Dogovor o preuzimanju i povratu']
 
 export default function Home() {
 
@@ -125,11 +96,12 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('Svi')
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
+  const [vehicleError, setVehicleError] = useState('')
+  const [dateError, setDateError] = useState('')
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' })
   const [contactLoading, setContactLoading] = useState(false)
   const [contactSuccess, setContactSuccess] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const [newsletterEmail, setNewsletterEmail] = useState('')
 
   // Theme state (auto by time of day, with manual override)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
@@ -138,55 +110,70 @@ export default function Home() {
   // Booking state
   const [bookingModal, setBookingModal] = useState(false)
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
-  const [bookingDates, setBookingDates] = useState({ from: '2026-03-15', to: '2026-03-22', location: 'Zadar - Zračna luka' })
+  const [bookingDates, setBookingDates] = useState({ from: bookingOpensOn, to: '2027-04-08', location: 'Zadar - Zračna luka' })
+  const today = new Date().toLocaleDateString('sv-SE')
+  const earliestPickup = today > bookingOpensOn ? today : bookingOpensOn
+  const validateDates = () => {
+    let valid = false
+    try { valid = rentalDays(bookingDates.from, bookingDates.to) > 0 && bookingDates.from >= earliestPickup } catch { valid = false }
+    setDateError(valid ? '' : 'Odaberite datum preuzimanja i kasniji datum povrata. Najmovi počinju 1. travnja 2027. Odaberite 1–365 dana, bez datuma u prošlosti.')
+    return valid
+  }
   const [selectedExtras, setSelectedExtras] = useState<string[]>([])
   const [bookingStep, setBookingStep] = useState(1)
   const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' })
   const [extraNotes, setExtraNotes] = useState('')
   const [depositConfirmed, setDepositConfirmed] = useState(false)
   const [bookingLoading, setBookingLoading] = useState(false)
+  const [bookingError, setBookingError] = useState('')
+  const [confirmedTotal, setConfirmedTotal] = useState<number | null>(null)
+  const [requestId, setRequestId] = useState('')
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   // Promo code state
   const [promoCode, setPromoCode] = useState('')
-  const [promoDiscount, setPromoDiscount] = useState(0)
-  const [promoValidating, setPromoValidating] = useState(false)
-  const [promoError, setPromoError] = useState('')
 
-
-  const insuranceOptions = [
-    { id: 'cdw', name: 'CDW+ Puno kasko', price: 15, description: 'Bez učešća u slučaju štete (Deposit 700€)' },
-    { id: 'glass', name: 'Zaštita stakala i guma', price: 8, description: 'Pokriva oštećenja stakla i guma' },
-    { id: 'infant', name: 'Sjedalica "Jaje" (do 13kg)', price: 10, description: 'Za novorođenčad' },
-    { id: 'child', name: 'Dječja sjedalica (9-18kg)', price: 10, description: 'Sigurnosna sjedalica za djecu' },
-    { id: 'booster', name: 'Booster sjedalica', price: 5, description: 'Podloška za stariju djecu' },
-    { id: 'border_eu', name: 'Prelazak EU granice', price: 50, description: 'Dozvola za vožnju unutar EU (Slo, Ita, Aut...)' },
-    { id: 'border_noneu', name: 'Prelazak non-EU granice', price: 100, description: 'BiH, Crna Gora, Albanija' },
-    { id: 'cleaning', name: 'Unaprijed plaćeno čišćenje', price: 15, description: 'Vratite auto bez brige o pranju' },
-    { id: 'gps', name: 'GPS navigacija', price: 5, description: 'Uređaj za navigaciju' },
-  ]
 
   const categories = ['Svi', 'Economy', 'Business', 'Premium', 'SUV', 'Electric', 'Luxury']
 
-  // Fetch vehicles from Supabase
+  const vehicleRequest = useRef(0)
+  const fetchVehicles = async (from = '', to = '') => {
+    const requestNumber = ++vehicleRequest.current
+    setLoading(true)
+    setVehicleError('')
+    try {
+      const response = await fetch(`/api/vehicles${from && to ? `?from=${from}&to=${to}` : ''}`)
+      const data = await response.json()
+      if (requestNumber !== vehicleRequest.current) return
+      if (!response.ok) throw new Error(data.error)
+      setVehicles(data)
+    } catch {
+      if (requestNumber !== vehicleRequest.current) return
+      setVehicles([])
+      setVehicleError('Ponudu vozila trenutačno nije moguće učitati. Pokušajte ponovno ili nas kontaktirajte.')
+    } finally { if (requestNumber === vehicleRequest.current) setLoading(false) }
+  }
+  useEffect(() => { fetchVehicles() }, [])
+
   useEffect(() => {
-    async function fetchVehicles() {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('available', true)
-        .order('price_per_day', { ascending: true })
-
-      if (error) {
-        console.error('Error fetching vehicles:', error)
-      } else {
-        setVehicles(data || [])
+    if (!bookingModal) return
+    const previous = document.activeElement as HTMLElement | null
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    dialogRef.current?.focus()
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !bookingLoading) setBookingModal(false)
+      if (event.key === 'Tab') {
+        const nodes = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select, textarea, a[href]') || []).filter(el => el.getClientRects().length)
+        if (!nodes.length) { event.preventDefault(); return }
+        const first = nodes[0], last = nodes[nodes.length - 1]
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last.focus() }
+        else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) { event.preventDefault(); first.focus() }
       }
-      setLoading(false)
     }
-
-    fetchVehicles()
-  }, [])
+    document.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = overflow; document.removeEventListener('keydown', onKey); previous?.focus() }
+  }, [bookingModal, bookingLoading])
 
   // Automatic theme based on time of day
   useEffect(() => {
@@ -241,49 +228,26 @@ export default function Home() {
 
   // Handle contact form submission
   const handleBookingSubmit = async () => {
-    if (!selectedVehicle) return
+    if (!selectedVehicle || !validateDates()) return
     setBookingLoading(true)
 
-    const fromDate = new Date(bookingDates.from)
-    const toDate = new Date(bookingDates.to)
-    const diffTime = Math.abs(toDate.getTime() - fromDate.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1
-
-    const extrasPrice = selectedExtras.reduce((sum, id) => {
-      const option = insuranceOptions.find(o => o.id === id)
-      return sum + (option?.price || 0)
-    }, 0)
-
-    let totalPrice = (selectedVehicle.price_per_day + extrasPrice) * diffDays
-
-    // Apply promo discount if valid
-    if (promoDiscount > 0) {
-      totalPrice = totalPrice * (1 - promoDiscount / 100)
-    }
-
+    setBookingError('')
     try {
-      // Direct Supabase insert - email confirmation handled separately
-      const { error } = await supabase.from('bookings').insert({
-        vehicle_id: selectedVehicle.id,
-        customer_name: customerInfo.name,
-        customer_email: customerInfo.email,
-        customer_phone: customerInfo.phone,
-        pickup_location: bookingDates.location,
-        pickup_date: bookingDates.from,
-        return_date: bookingDates.to,
-        total_price: totalPrice,
-        status: 'pending',
-        extra_notes: extraNotes,
-        border_crossing: selectedExtras.includes('border_eu') || selectedExtras.includes('border_noneu'),
-        cleaning_fee: selectedExtras.includes('cleaning'),
-        deposit_confirmed: depositConfirmed,
-        selected_extras: selectedExtras
+      const response = await fetch('/api/bookings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          request_id: requestId, vehicle_id: selectedVehicle.id,
+          customer_name: customerInfo.name, customer_email: customerInfo.email, customer_phone: customerInfo.phone,
+          pickup_location: bookingDates.location, pickup_date: bookingDates.from, return_date: bookingDates.to,
+          selected_extras: selectedExtras, extra_notes: extraNotes, deposit_confirmed: depositConfirmed, promo_code: promoCode
+        })
       })
-
-      if (error) throw error
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
+      setConfirmedTotal(data.booking.total_price)
       setBookingStep(3)
     } catch (error) {
-      alert('Došlo je do pogreške pri slanju rezervacije. Molimo pokušajte ponovo.')
+      setBookingError(error instanceof Error ? error.message : 'Upit nije spremljen. Pokušajte ponovno.')
       console.error(error)
     } finally {
       setBookingLoading(false)
@@ -294,20 +258,15 @@ export default function Home() {
     e.preventDefault()
     setContactLoading(true)
 
-    const { error } = await supabase
-      .from('contact_messages')
-      .insert([contactForm])
-
-    if (error) {
-      console.error('Error sending message:', error)
-      alert('Greška pri slanju poruke. Molimo pokušajte ponovo.')
-    } else {
+    try {
+      const response = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(contactForm) })
+      if (!response.ok) throw new Error()
       setContactSuccess(true)
       setContactForm({ name: '', email: '', message: '' })
-      setTimeout(() => setContactSuccess(false), 5000)
-    }
-    setContactLoading(false)
+    } catch { alert('Poruka nije spremljena. Pokušajte ponovno ili nas nazovite.') }
+    finally { setContactLoading(false) }
   }
+
 
 
   return (
@@ -321,13 +280,13 @@ export default function Home() {
 
 
 
-          <div className={`nav-links ${mobileMenuOpen ? 'active' : ''}`}>
+          <div className={`nav-links ${mobileMenuOpen ? 'active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
             <a href="#vozila">Vozila</a>
             <a href="#usluge">Usluge</a>
             <a href="#faq">FAQ</a>
             <a href="/blog">Blog</a>
             <a href="#kontakt">Kontakt</a>
-            <a href="/admin">Admin</a>
+
           </div>
 
 
@@ -344,7 +303,7 @@ export default function Home() {
               <Phone size={18} aria-hidden="true" />
               <span>+385 99 165 5885</span>
             </a>
-            <button className="btn btn-primary btn-nav" aria-label="Rezervirajte vozilo">
+            <button className="btn btn-primary btn-nav" aria-label="Rezervirajte vozilo" onClick={() => document.getElementById("pretraga")?.scrollIntoView({ behavior: "smooth" })}>
               Rezerviraj
             </button>
           </div>
@@ -361,7 +320,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="hero">
+      <section className="hero" id="pretraga">
         <div className="bg-grid"></div>
         <div className="bg-glow hero-glow-1"></div>
         <div className="bg-glow hero-glow-2"></div>
@@ -370,49 +329,36 @@ export default function Home() {
           <div className="hero-content">
             <div className="hero-badge">
               <Sparkles size={16} />
-              <span>Premium Rent A Car usluga</span>
+              <span>KAROCA / SEZONA 2027.</span>
             </div>
 
             <h1 className="hero-title">
-              Moderno putovanje
+              Vaš put kroz Dalmaciju
               <br />
-              <span className="gradient-text">s dalmatinskom dušom.</span>
+              <span className="gradient-text">počinje ovdje.</span>
             </h1>
 
             <p className="hero-description">
-              Otkrijte našu kolekciju premium vozila po pristupačnim cijenama.
-              Jednostavna rezervacija, transparentne cijene, bez skrivenih troškova.
+              Odaberite vozilo za gradske ulice, obalne ceste i dane bez žurbe.
+              Pet Suzuki Vitara, godište 2026. Najmovi od 1. travnja 2027. u Zadru.
             </p>
 
-            <div className="hero-stats">
-              <div className="stat">
-                <span className="stat-number">500+</span>
-                <span className="stat-label">Vozila</span>
-              </div>
-              <div className="stat-divider"></div>
-              <div className="stat">
-                <span className="stat-number">15k+</span>
-                <span className="stat-label">Klijenata</span>
-              </div>
-              <div className="stat-divider"></div>
-              <div className="stat">
-                <span className="stat-number">4.9</span>
-                <span className="stat-label">Ocjena</span>
-              </div>
+            <div className="hero-car">
+              <Image src="/vehicles/suzuki-vitara.png" alt="Suzuki Vitara" width={620} height={350} sizes="(max-width: 768px) 100vw, 620px" priority style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
             </div>
           </div>
 
           {/* Booking Form */}
           <div className="hero-booking glass">
-            <h3 className="booking-title">Brza rezervacija</h3>
+            <h3 className="booking-title">Isplanirajte svoj najam</h3>
 
             <div className="booking-form">
               <div className="form-group">
-                <label>
+                <label htmlFor="pickup-location">
                   <MapPin size={18} />
                   Preuzimanje
                 </label>
-                <select value={bookingDates.location} onChange={e => setBookingDates({ ...bookingDates, location: e.target.value })}>
+                <select id="pickup-location" value={bookingDates.location} onChange={e => setBookingDates({ ...bookingDates, location: e.target.value })}>
                   <option>Zadar - Zračna luka</option>
                   <option>Zadar - Centar</option>
                   <option>Zadar - Autobusni kolodvor</option>
@@ -421,40 +367,34 @@ export default function Home() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>
+                  <label htmlFor="pickup-date">
                     <Calendar size={18} />
-                    Od
+                    Preuzimanje
                   </label>
-                  <input type="date" min="2026-03-15" value={bookingDates.from} onChange={e => setBookingDates({ ...bookingDates, from: e.target.value })} />
+                  <input id="pickup-date" type="date" min={earliestPickup} value={bookingDates.from} onChange={e => setBookingDates({ ...bookingDates, from: e.target.value })} />
                 </div>
                 <div className="form-group">
-                  <label>
+                  <label htmlFor="return-date">
                     <Calendar size={18} />
-                    Do
+                    Povrat
                   </label>
-                  <input type="date" min="2026-03-15" value={bookingDates.to} onChange={e => setBookingDates({ ...bookingDates, to: e.target.value })} />
+                  <input id="return-date" type="date" min={bookingDates.from || earliestPickup} value={bookingDates.to} onChange={e => setBookingDates({ ...bookingDates, to: e.target.value })} />
                 </div>
               </div>
 
               <button
                 className="btn btn-primary btn-book"
                 onClick={() => {
-                  if (!bookingDates.from || !bookingDates.to) {
-                    alert('Molimo odaberite datume preuzimanja i povrata.')
-                    return
-                  }
-                  // Open modal with first available vehicle or show vehicle picker
-                  if (vehicles.length > 0) {
-                    setSelectedVehicle(vehicles[0])
-                    setBookingStep(1)
-                    setSelectedExtras([])
-                    setBookingModal(true)
-                  }
+                  if (!validateDates()) return
+                  fetchVehicles(bookingDates.from, bookingDates.to)
+                  document.getElementById('vozila')?.scrollIntoView({ behavior: 'smooth' })
                 }}
               >
-                Pretraži vozila
+                Pogledaj vozila
                 <ChevronRight size={20} />
               </button>
+              {dateError && <p className="date-error" role="alert">{dateError}</p>}
+              <p className="booking-note">Dostupnost i konačnu ponudu potvrđujemo nakon vašeg upita.</p>
             </div>
 
 
@@ -509,7 +449,10 @@ export default function Home() {
               </>
             ) : vehicles.length === 0 ? (
               <div className="empty-state">
-                <p>Nema dostupnih vozila.</p>
+                <h3>{fleetPlan.make} {fleetPlan.model} · {fleetPlan.modelYear}</h3>
+                <p>{fleetPlan.quantity} vozila u floti · Najam od 1. travnja 2027. · Cijena na upit</p>
+                <p role={vehicleError ? "alert" : "status"}>{vehicleError || "Ponuda vozila trenutačno nije dostupna. Kontaktirajte nas za informacije o najmu."}</p>
+                <a href="#kontakt" className="btn btn-secondary">Kontaktirajte nas</a>
 
               </div>
             ) : (
@@ -518,7 +461,7 @@ export default function Home() {
                 <div key={vehicle.id} className="vehicle-card card">
                   <div className="vehicle-image">
                     {(vehicle.image_url?.startsWith('http') || vehicle.image_url?.startsWith('/')) ? (
-                      <Image src={vehicle.image_url} alt={vehicle.name} className="vehicle-img" width={400} height={250} loading="lazy" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+                      <Image src={vehicle.image_url} alt={vehicle.name} className="vehicle-img" width={400} height={250} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px" loading="lazy" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
                     ) : (
                       <span className="vehicle-emoji">{vehicle.image_url}</span>
                     )}
@@ -572,7 +515,12 @@ export default function Home() {
                       <button
                         className="btn btn-primary btn-sm"
                         onClick={() => {
+                          if (!validateDates()) { document.getElementById('pretraga')?.scrollIntoView({ behavior: 'smooth' }); return }
                           setSelectedVehicle(vehicle)
+                          setRequestId(crypto.randomUUID())
+                          setBookingError('')
+                          setPromoCode('')
+                          setDepositConfirmed(false)
                           setBookingStep(1)
                           setSelectedExtras([])
                           setBookingModal(true)
@@ -609,7 +557,7 @@ export default function Home() {
       </section>
 
       {/* Long-term Rental Section */}
-      <section className="long-term">
+      <section className="long-term" id="dugorocni-najam">
         <div className="container">
           <div className="long-term-content glass">
             <div className="long-term-text">
@@ -637,74 +585,15 @@ export default function Home() {
           <div className="faq-list">
             {faqItems.map((item, index) => (
               <div key={index} className={`faq-item ${openFaq === index ? 'open' : ''}`}>
-                <button className="faq-question" onClick={() => setOpenFaq(openFaq === index ? null : index)}>
+                <button className="faq-question" aria-expanded={openFaq === index} onClick={() => setOpenFaq(openFaq === index ? null : index)}>
                   <span>{item.question}</span>
                   <ChevronDown size={20} className={`faq-icon ${openFaq === index ? 'rotated' : ''}`} />
                 </button>
-                <div className="faq-answer">
+                <div className="faq-answer" aria-hidden={openFaq !== index}>
                   <p>{item.answer}</p>
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="o-nama" className="testimonials">
-        <div className="container">
-          <div style={{ textAlign: 'center' }}>
-            <div className="google-badge">
-              <span className="google-g">
-                <span className="g-blue">G</span>
-                <span className="g-red">o</span>
-                <span className="g-yellow">o</span>
-                <span className="g-blue">g</span>
-                <span className="g-green">l</span>
-                <span className="g-red">e</span>
-              </span>
-              <span>Recenzije</span>
-            </div>
-            <h2 className="section-title">Što kažu naši klijenti</h2>
-            <p className="section-subtitle">
-              Ponosni smo na ocjenu 4.9/5 temeljenu na preko 150+ Google recenzija
-            </p>
-          </div>
-
-          <div className="testimonials-grid grid grid-3">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="google-card">
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-                  <div className="author-avatar" style={{ background: '#f1f3f4', color: '#5f6368', marginRight: '1rem' }}>
-                    {testimonial.name.charAt(0)}
-                  </div>
-                  <div className="author-info">
-                    <strong style={{ display: 'block' }}>{testimonial.name}</strong>
-                    <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{testimonial.role}</span>
-                  </div>
-                  <div className="google-date">{testimonial.date}</div>
-                </div>
-
-                <div className="google-stars">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} size={16} fill="#FBBC05" color="#FBBC05" />
-                  ))}
-                </div>
-
-                <p className="testimonial-content" style={{ fontSize: '0.95rem', color: '#cbd5e1', fontStyle: 'normal' }}>
-                  "{testimonial.content}"
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="google-actions">
-            <a href="https://search.google.com/local/writereview?placeid=ChIJo_L6hA4xUxMR1-85-8-L94k" target="_blank" rel="noopener noreferrer" className="btn btn-google">
-              Napiši recenziju
-            </a>
-            <a href="https://www.google.com/maps/place/Karoca+Rent+A+Car/@44.11933,15.22851,17z" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
-              Pogledaj sve recenzije
-            </a>
           </div>
         </div>
       </section>
@@ -718,7 +607,7 @@ export default function Home() {
               <p>Rezervirajte svoje vozilo danas i uživajte u slobodi putovanja.</p>
             </div>
             <div className="cta-actions">
-              <button className="btn btn-primary btn-lg">
+              <button className="btn btn-primary btn-lg" onClick={() => document.getElementById("pretraga")?.scrollIntoView({ behavior: "smooth" })}>
                 Rezerviraj sada
               </button>
               <a href="tel:+385991655885" className="btn btn-secondary btn-lg">
@@ -736,7 +625,7 @@ export default function Home() {
           <div className="contact-grid grid grid-2">
             <div className="contact-info">
               <h2>Kontaktirajte nas</h2>
-              <p>Imate pitanja? Tu smo za vas 24/7.</p>
+              <p>Imate pitanja o vozilima ili terminu? Pošaljite nam poruku.</p>
 
               <div className="contact-items">
                 <div className="contact-item">
@@ -750,7 +639,7 @@ export default function Home() {
                   <Mail size={24} />
                   <div>
                     <strong>Email</strong>
-                    <span>info@karoca.hr</span>
+                    <a href="mailto:info@karoca-rentacar.hr">info@karoca-rentacar.hr</a>
                   </div>
                 </div>
                 <div className="contact-item">
@@ -771,29 +660,29 @@ export default function Home() {
                 </div>
               )}
               <div className="form-group">
-                <label>Ime i prezime</label>
+                <label htmlFor="contact-name">Ime i prezime</label>
                 <input
                   type="text"
-                  placeholder="Vaše ime"
+                  id="contact-name" placeholder="Vaše ime"
                   value={contactForm.name}
                   onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                   required
                 />
               </div>
               <div className="form-group">
-                <label>Email</label>
+                <label htmlFor="contact-email">Email</label>
                 <input
                   type="email"
-                  placeholder="vas@email.com"
+                  id="contact-email" placeholder="vas@email.com"
                   value={contactForm.email}
                   onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                   required
                 />
               </div>
               <div className="form-group">
-                <label>Poruka</label>
+                <label htmlFor="contact-message">Poruka</label>
                 <textarea
-                  placeholder="Vaša poruka..."
+                  id="contact-message" placeholder="Vaša poruka..."
                   rows={4}
                   value={contactForm.message}
                   onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
@@ -843,56 +732,44 @@ export default function Home() {
             <div className="footer-links">
               <div className="footer-col">
                 <h5>Usluge</h5>
-                <a href="#">Kratkoročni najam</a>
-                <a href="#">Dugoročni najam</a>
-                <a href="#">Transfer</a>
-                <a href="#">Korporativni najam</a>
+                <a href="#vozila">Kratkoročni najam</a>
+                <a href="#dugorocni-najam">Dugoročni najam</a>
+                <a href="#kontakt">Transfer</a>
+                <a href="#kontakt">Korporativni najam</a>
               </div>
               <div className="footer-col">
                 <h5>Kompanija</h5>
-                <a href="#">O nama</a>
-                <a href="#">Karijere</a>
-                <a href="#">Blog</a>
-                <a href="#">Partneri</a>
+                <a href="#kontakt">O nama</a>
+
+                <a href="/blog">Blog</a>
+                <a href="#kontakt">Partneri</a>
               </div>
               <div className="footer-col">
                 <h5>Podrška</h5>
                 <a href="#faq">FAQ</a>
                 <a href="#kontakt">Kontakt</a>
-                <a href="#">Uvjeti korištenja</a>
-                <a href="#">Privatnost</a>
+                <a href="#kontakt">Upit o uvjetima najma</a>
+                <a href="#kontakt">Upit o osobnim podacima</a>
               </div>
-              <div className="footer-col newsletter-col">
-                <h5>Newsletter</h5>
-                <p>Prijavite se za ekskluzivne ponude i novosti</p>
-                <form className="newsletter-form" onSubmit={(e) => { e.preventDefault(); setNewsletterEmail(''); alert('Hvala na prijavi!'); }}>
-                  <input
-                    type="email"
-                    placeholder="Vaš email"
-                    value={newsletterEmail}
-                    onChange={(e) => setNewsletterEmail(e.target.value)}
-                    required
-                  />
-                  <button type="submit"><Send size={18} /></button>
-                </form>
-              </div>
+              <div className="footer-col"><h5>Karoca</h5><a href="/admin">Prijava za djelatnike</a><a href="tel:+385991655885">+385 99 165 5885</a></div>
             </div>
           </div>
 
           <div className="footer-bottom">
-            <p>&copy; 2024 Karoca Rent A Car. Sva prava pridržana.</p>
+            <p>&copy; {new Date().getFullYear()} Karoca Rent A Car. Sva prava pridržana.</p>
           </div>
         </div>
       </footer>
 
       {/* Booking Modal */}
       {bookingModal && selectedVehicle && (
-        <div className="modal-overlay" onClick={() => setBookingModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setBookingModal(false)}><X size={24} /></button>
+        <div className="modal-overlay" onClick={() => { if (!bookingLoading) setBookingModal(false) }}>
+          <div className="modal-content" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="booking-title" tabIndex={-1} onClick={e => e.stopPropagation()}>
+            <button className="modal-close" aria-label="Zatvori upit za najam" disabled={bookingLoading} onClick={() => { if (!bookingLoading) setBookingModal(false) }}><X size={24} /></button>
 
             <div className="modal-header">
-              <h2>Rezervacija: {selectedVehicle.name}</h2>
+              <h2 id="booking-title">Upit za najam: {selectedVehicle.name}</h2>
+              {bookingError && <p role="alert" className="date-error">{bookingError}</p>}
               <div className="modal-steps">
                 <span className={bookingStep >= 1 ? 'active' : ''}>1. Dodaci</span>
                 <span className={bookingStep >= 2 ? 'active' : ''}>2. Podaci</span>
@@ -925,39 +802,18 @@ export default function Home() {
                     <ShieldCheck size={24} style={{ color: '#f5af19' }} />
                     <div>
                       <strong style={{ color: '#f5af19', display: 'block' }}>Informacija o depozitu</strong>
-                      <p style={{ fontSize: '0.85rem', margin: 0 }}>Standardni sigurnosni polog za ovo vozilo iznosi <strong>700,00 €</strong>. Polog se autorizira na kartici ili ostavlja u gotovini prilikom preuzimanja.</p>
+                      <p style={{ fontSize: '0.85rem', margin: 0 }}>Iznos pologa, način plaćanja i uvjete osiguranja navest ćemo u ponudi prije potvrde najma. Odabir dodatka sam po sebi ne znači odobreno pokriće.</p>
                     </div>
                   </div>
                 </div>
 
-                <h3 style={{ marginTop: '2rem' }}>Odaberite dodatke i osiguranje</h3>
-                <div className="extras-grid">
-                  {insuranceOptions.map(option => (
-                    <label key={option.id} className={`extra-card ${selectedExtras.includes(option.id) ? 'selected' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={selectedExtras.includes(option.id)}
-                        onChange={e => {
-                          if (e.target.checked) {
-                            setSelectedExtras([...selectedExtras, option.id])
-                          } else {
-                            setSelectedExtras(selectedExtras.filter(id => id !== option.id))
-                          }
-                        }}
-                      />
-                      <div className="extra-info">
-                        <strong>{option.name}</strong>
-                        <small>{option.description}</small>
-                      </div>
-                      <span className="extra-price">+€{option.price}/dan</span>
-                    </label>
-                  ))}
-                </div>
+                <BookingExtras selected={selectedExtras} onChange={setSelectedExtras} days={rentalDays(bookingDates.from, bookingDates.to)} />
+                <BookingPriceBreakdown selected={selectedExtras} days={rentalDays(bookingDates.from, bookingDates.to)} dailyRate={Number(selectedVehicle.price_per_day)} />
 
                 <div className="modal-footer">
                   <div className="price-total">
-                    <span>Ukupno po danu:</span>
-                    <strong>€{selectedVehicle.price_per_day + selectedExtras.reduce((sum, id) => sum + (insuranceOptions.find(o => o.id === id)?.price || 0), 0)}</strong>
+                    <span>Okvirno ukupno, prije promo popusta:</span>
+                    <strong>{rentalTotal(Number(selectedVehicle.price_per_day), rentalDays(bookingDates.from, bookingDates.to), selectedExtras).toLocaleString("hr-HR", { style: "currency", currency: "EUR" })}</strong>
                   </div>
                   <button className="btn btn-primary" onClick={() => setBookingStep(2)}>
                     Nastavi <ChevronRight size={18} />
@@ -968,12 +824,13 @@ export default function Home() {
 
             {bookingStep === 2 && (
               <div className="modal-body">
+                <BookingPriceBreakdown selected={selectedExtras} days={rentalDays(bookingDates.from, bookingDates.to)} dailyRate={Number(selectedVehicle.price_per_day)} />
                 <h3>Vaši podaci</h3>
                 <div className="customer-form">
                   <div className="form-group">
                     <label>Ime i prezime *</label>
                     <input
-                      type="text"
+                      type="text" aria-label="Ime i prezime" maxLength={255}
                       placeholder="Ivan Horvat"
                       value={customerInfo.name}
                       onChange={e => setCustomerInfo({ ...customerInfo, name: e.target.value })}
@@ -982,7 +839,7 @@ export default function Home() {
                   <div className="form-group">
                     <label>Email *</label>
                     <input
-                      type="email"
+                      type="email" aria-label="Email adresa" maxLength={255}
                       placeholder="ivan@email.com"
                       value={customerInfo.email}
                       onChange={e => setCustomerInfo({ ...customerInfo, email: e.target.value })}
@@ -991,60 +848,24 @@ export default function Home() {
                   <div className="form-group">
                     <label>Telefon *</label>
                     <input
-                      type="tel"
+                      type="tel" aria-label="Telefon" maxLength={50}
                       placeholder="+385 91 234 5678"
                       value={customerInfo.phone}
                       onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
                     />
                   </div>
 
-                  {/* Promo Code Input */}
-                  <div className="promo-section" style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
-                    <label style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>Promo kod (opcionalno)</label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <input
-                        type="text"
-                        placeholder="Unesite promo kod"
-                        value={promoCode}
-                        onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); setPromoDiscount(0); }}
-                        style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.05)', color: 'white' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!promoCode.trim()) return;
-                          setPromoValidating(true);
-                          setPromoError('');
-                          const { data, error } = await supabase
-                            .from('promo_codes')
-                            .select('discount_percent')
-                            .eq('code', promoCode.trim())
-                            .eq('active', true)
-                            .single();
-                          if (error || !data) {
-                            setPromoError('Nevažeći promo kod');
-                            setPromoDiscount(0);
-                          } else {
-                            setPromoDiscount(data.discount_percent);
-                            setPromoError('');
-                          }
-                          setPromoValidating(false);
-                        }}
-                        disabled={promoValidating || !promoCode.trim()}
-                        style={{ padding: '0.75rem 1.25rem', background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: '600', cursor: 'pointer' }}
-                      >
-                        {promoValidating ? 'Provjera...' : 'Primijeni'}
-                      </button>
-                    </div>
-                    {promoError && <p style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.5rem' }}>{promoError}</p>}
-                    {promoDiscount > 0 && <p style={{ color: '#22c55e', fontSize: '0.9rem', marginTop: '0.5rem', fontWeight: '600' }}>✅ Popust od {promoDiscount}% primjenjen!</p>}
+                  <div className="form-group">
+                    <label htmlFor="promo-code">Promo kod (opcionalno)</label>
+                    <input id="promo-code" maxLength={20} value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase())} />
+                    <small>Kod provjeravamo pri slanju upita. Popust će biti prikazan u zaprimljenom upitu.</small>
                   </div>
-
                   {/* Extra Notes */}
                   <div className="form-group" style={{ marginTop: '1.5rem' }}>
                     <label>Napomena (npr. dob djeteta za sjedalicu, broj leta...)</label>
                     <textarea
                       placeholder="Unesite dodatne informacije ovdje..."
+                      maxLength={2000}
                       value={extraNotes}
                       onChange={e => setExtraNotes(e.target.value)}
                       rows={3}
@@ -1061,7 +882,7 @@ export default function Home() {
                         onChange={e => setDepositConfirmed(e.target.checked)}
                         style={{ width: '20px', height: '20px' }}
                       />
-                      <span style={{ fontSize: '0.9rem' }}>Upoznat sam i slažem se s uvjetima o **sigurnosnom pologu (depozitu) od 700€** *</span>
+                      <span style={{ fontSize: '0.9rem' }}>Razumijem da je ovo upit i da cijenu, polog i uvjete najma trebam prihvatiti prije potvrde rezervacije. *</span>
                     </label>
                   </div>
                 </div>
@@ -1077,7 +898,7 @@ export default function Home() {
                         <Loader2 size={18} className="spin" /> Slanje...
                       </span>
                     ) : (
-                      <>Potvrdi rezervaciju <ChevronRight size={18} /></>
+                      <>Pošalji upit <ChevronRight size={18} /></>
                     )}
                   </button>
                 </div>
@@ -1087,7 +908,9 @@ export default function Home() {
             {bookingStep === 3 && (
               <div className="modal-body">
                 <div className="confirmation-icon">✅</div>
-                <h3>Rezervacija zaprimljena!</h3>
+                <h3>Upit je zaprimljen!</h3>
+                <p>Najam još nije potvrđen. Javit ćemo vam se s potvrdom dostupnosti i uvjeta.</p>
+                {confirmedTotal !== null && <p>Ukupno prema upitu: <strong>{confirmedTotal.toLocaleString("hr-HR", { style: "currency", currency: "EUR" })}</strong></p>}
                 <p>Kontaktirat ćemo vas uskoro na:</p>
                 <p><strong>{customerInfo.email}</strong></p>
                 <p><strong>{customerInfo.phone}</strong></p>
@@ -1114,7 +937,7 @@ export default function Home() {
         .page {
           min-height: 100vh;
         }
-        
+
         /* Navigation */
         .nav {
           position: fixed;
@@ -1126,20 +949,20 @@ export default function Home() {
           backdrop-filter: blur(20px);
           border-bottom: 1px solid var(--border);
         }
-        
+
         .nav-container {
           display: flex;
           align-items: center;
           justify-content: space-between;
           height: 120px;
         }
-        
+
         .logo {
           display: flex;
           align-items: center;
           gap: 0.75rem;
         }
-        
+
         .logo-img {
           height: 100px;
           padding: 10px 0;
@@ -1148,47 +971,47 @@ export default function Home() {
           object-fit: contain;
           transition: transform 0.3s ease;
         }
-        
+
         .logo:hover .logo-img {
           transform: scale(1.05);
         }
 
-        
+
         .nav-links {
           display: flex;
           gap: 2.5rem;
         }
-        
+
         .nav-links a {
           font-weight: 500;
           color: var(--text-muted);
         }
-        
+
         .nav-links a:hover {
           color: var(--accent);
         }
-        
+
         .nav-actions {
           display: flex;
           align-items: center;
           gap: 1.5rem;
         }
-        
+
         .nav-phone {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           color: var(--text-muted);
         }
-        
+
         .nav-phone:hover {
           color: var(--accent);
         }
-        
+
         .btn-nav {
           padding: 0.75rem 1.5rem;
         }
-        
+
         .mobile-menu-btn {
           display: none;
           background: none;
@@ -1196,7 +1019,7 @@ export default function Home() {
           color: white;
           cursor: pointer;
         }
-        
+
         /* Hero */
         .hero {
           min-height: 100vh;
@@ -1206,25 +1029,25 @@ export default function Home() {
           position: relative;
           overflow: hidden;
         }
-        
+
         .hero-glow-1 {
           top: -200px;
           right: -200px;
         }
-        
+
         .hero-glow-2 {
           bottom: -300px;
           left: -200px;
           background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
         }
-        
+
         .hero-container {
           display: grid;
           grid-template-columns: 1fr 450px;
           gap: 4rem;
           align-items: center;
         }
-        
+
         .hero-badge {
           display: inline-flex;
           align-items: center;
@@ -1238,39 +1061,39 @@ export default function Home() {
           font-weight: 500;
           margin-bottom: 1.5rem;
         }
-        
+
         .hero-title {
           font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 800;
           line-height: 1.1;
           margin-bottom: 1.5rem;
         }
-        
+
         .gradient-text {
           background: var(--gradient-accent);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
-        
+
         .hero-description {
           font-size: 1.25rem;
           color: var(--text-muted);
           max-width: 500px;
           margin-bottom: 2rem;
         }
-        
+
         .hero-stats {
           display: flex;
           align-items: center;
           gap: 2rem;
         }
-        
+
         .stat {
           display: flex;
           flex-direction: column;
         }
-        
+
         .stat-number {
           font-size: 2rem;
           font-weight: 800;
@@ -1279,40 +1102,40 @@ export default function Home() {
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
-        
+
         .stat-label {
           font-size: 0.875rem;
           color: var(--text-muted);
         }
-        
+
         .stat-divider {
           width: 1px;
           height: 40px;
           background: var(--border);
         }
-        
+
         /* Booking Form */
         .hero-booking {
           padding: 2rem;
         }
-        
+
         .booking-title {
           font-size: 1.25rem;
           margin-bottom: 1.5rem;
         }
-        
+
         .booking-form {
           display: flex;
           flex-direction: column;
           gap: 1rem;
         }
-        
+
         .form-group {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
         }
-        
+
         .form-group label {
           display: flex;
           align-items: center;
@@ -1320,7 +1143,7 @@ export default function Home() {
           font-size: 0.875rem;
           color: var(--text-muted);
         }
-        
+
         .form-group input,
         .form-group select,
         .form-group textarea {
@@ -1332,7 +1155,7 @@ export default function Home() {
           font-size: 1rem;
           transition: all 0.3s ease;
         }
-        
+
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus {
@@ -1340,28 +1163,28 @@ export default function Home() {
           border-color: var(--accent);
           background: rgba(255, 255, 255, 0.08);
         }
-        
+
         .form-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1rem;
         }
-        
+
         .btn-book {
           margin-top: 0.5rem;
         }
-        
+
         /* Features */
         .features {
           padding: 4rem 0;
           margin-top: -2rem;
         }
-        
+
         .feature-card {
           padding: 2rem;
           text-align: center;
         }
-        
+
         .feature-icon {
           display: inline-flex;
           align-items: center;
@@ -1372,21 +1195,21 @@ export default function Home() {
           border-radius: 16px;
           margin-bottom: 1rem;
         }
-        
+
         .feature-card h4 {
           margin-bottom: 0.5rem;
         }
-        
+
         .feature-card p {
           color: var(--text-muted);
           font-size: 0.9rem;
         }
-        
+
         /* Vehicles */
         .vehicles {
           background: var(--gradient-dark);
         }
-        
+
         .category-filter {
           display: flex;
           justify-content: center;
@@ -1394,7 +1217,7 @@ export default function Home() {
           gap: 0.75rem;
           margin-bottom: 3rem;
         }
-        
+
         .filter-btn {
           padding: 0.625rem 1.25rem;
           background: rgba(255, 255, 255, 0.05);
@@ -1406,18 +1229,18 @@ export default function Home() {
           cursor: pointer;
           transition: all 0.3s ease;
         }
-        
+
         .filter-btn:hover {
           border-color: var(--accent);
           color: white;
         }
-        
+
         .filter-btn.active {
           background: var(--gradient-accent);
           border-color: transparent;
           color: white;
         }
-        
+
         /* Loading & Empty States */
         .loading-state,
         .empty-state {
@@ -1426,18 +1249,18 @@ export default function Home() {
           padding: 4rem 2rem;
           color: var(--text-muted);
         }
-        
+
         .loading-state .spinner {
           animation: spin 1s linear infinite;
           margin-bottom: 1rem;
           color: var(--accent);
         }
-        
+
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        
+
         .success-message {
           display: flex;
           align-items: center;
@@ -1449,20 +1272,20 @@ export default function Home() {
           color: #22c55e;
           margin-bottom: 1rem;
         }
-        
+
         .btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
         }
-        
+
         .btn .spinner {
           animation: spin 1s linear infinite;
         }
-        
+
         .vehicle-card {
           overflow: hidden;
         }
-        
+
         .vehicle-image {
           background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
           text-align: center;
@@ -1473,7 +1296,7 @@ export default function Home() {
           justify-content: center;
           overflow: hidden;
         }
-        
+
         .vehicle-emoji {
           font-size: 5rem;
           padding-top: 2rem;
@@ -1483,7 +1306,7 @@ export default function Home() {
           height: 100%;
           object-fit: contain !important;
         }
-        
+
 
 
         .vehicle-category {
@@ -1497,22 +1320,22 @@ export default function Home() {
           font-size: 0.75rem;
           font-weight: 500;
         }
-        
+
         .vehicle-content {
           padding: 1.5rem;
         }
-        
+
         .vehicle-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 1rem;
         }
-        
+
         .vehicle-header h4 {
           font-size: 1.125rem;
         }
-        
+
         .vehicle-rating {
           display: flex;
           align-items: center;
@@ -1521,7 +1344,7 @@ export default function Home() {
           font-size: 0.875rem;
           font-weight: 600;
         }
-        
+
         .vehicle-specs {
           display: flex;
           gap: 1rem;
@@ -1529,20 +1352,20 @@ export default function Home() {
           color: var(--text-muted);
           font-size: 0.875rem;
         }
-        
+
         .vehicle-specs span {
           display: flex;
           align-items: center;
           gap: 0.375rem;
         }
-        
+
         .vehicle-features {
           display: flex;
           flex-wrap: wrap;
           gap: 0.5rem;
           margin-bottom: 1.5rem;
         }
-        
+
         .feature-tag {
           display: inline-flex;
           align-items: center;
@@ -1553,7 +1376,7 @@ export default function Home() {
           font-size: 0.75rem;
           color: var(--accent);
         }
-        
+
         .vehicle-footer {
           display: flex;
           justify-content: space-between;
@@ -1561,7 +1384,7 @@ export default function Home() {
           padding-top: 1rem;
           border-top: 1px solid var(--border);
         }
-        
+
         .price-amount {
           font-size: 1.5rem;
           font-weight: 800;
@@ -1570,45 +1393,45 @@ export default function Home() {
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
-        
+
         .price-period {
           color: var(--text-muted);
           font-size: 0.875rem;
         }
-        
+
         .btn-sm {
           padding: 0.625rem 1.25rem;
           font-size: 0.875rem;
         }
-        
+
         /* Testimonials */
         .testimonials {
           background: var(--bg-dark);
         }
-        
+
         .testimonial-card {
           padding: 2rem;
         }
-        
+
         .testimonial-stars {
           display: flex;
           gap: 0.25rem;
           margin-bottom: 1rem;
         }
-        
+
         .testimonial-content {
           font-size: 1rem;
           color: var(--text-muted);
           line-height: 1.7;
           margin-bottom: 1.5rem;
         }
-        
+
         .testimonial-author {
           display: flex;
           align-items: center;
           gap: 1rem;
         }
-        
+
         .author-avatar {
           width: 48px;
           height: 48px;
@@ -1620,22 +1443,22 @@ export default function Home() {
           font-weight: 700;
           font-size: 1.25rem;
         }
-        
+
         .author-info {
           display: flex;
           flex-direction: column;
         }
-        
+
         .author-info span {
           font-size: 0.875rem;
           color: var(--text-muted);
         }
-        
+
         /* CTA */
         .cta {
           padding: 4rem 0;
         }
-        
+
         .cta-content {
           display: flex;
           justify-content: space-between;
@@ -1643,84 +1466,84 @@ export default function Home() {
           padding: 4rem;
           background: linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(245, 175, 25, 0.1) 100%);
         }
-        
+
         .cta-text h2 {
           font-size: 2rem;
           margin-bottom: 0.5rem;
         }
-        
+
         .cta-text p {
           color: var(--text-muted);
         }
-        
+
         .cta-actions {
           display: flex;
           gap: 1rem;
         }
-        
+
         .btn-lg {
           padding: 1rem 2rem;
           font-size: 1.125rem;
         }
-        
+
         /* Contact */
         .contact {
           background: var(--gradient-dark);
         }
-        
+
         .contact-info h2 {
           font-size: 2.5rem;
           margin-bottom: 1rem;
         }
-        
+
         .contact-info > p {
           color: var(--text-muted);
           margin-bottom: 2rem;
         }
-        
+
         .contact-items {
           display: flex;
           flex-direction: column;
           gap: 1.5rem;
         }
-        
+
         .contact-item {
           display: flex;
           align-items: center;
           gap: 1rem;
         }
-        
+
         .contact-item svg {
           color: var(--accent);
         }
-        
+
         .contact-item div {
           display: flex;
           flex-direction: column;
         }
-        
+
         .contact-item span {
           color: var(--text-muted);
         }
-        
+
         .contact-form {
           padding: 2.5rem;
         }
-        
+
         .contact-form .form-group {
           margin-bottom: 1.25rem;
         }
-        
+
         .btn-block {
           width: 100%;
         }
-        
+
         /* Footer */
         .footer {
           background: var(--primary);
           padding: 4rem 0 0;
         }
-        
+
         .footer-top {
           display: grid;
           grid-template-columns: 1fr 2fr;
@@ -1728,94 +1551,94 @@ export default function Home() {
           padding-bottom: 3rem;
           border-bottom: 1px solid var(--border);
         }
-        
+
         .footer-brand p {
           color: var(--text-muted);
           margin-top: 1rem;
           max-width: 300px;
         }
-        
+
         .footer-links {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 2rem;
         }
-        
+
         .footer-col h5 {
           margin-bottom: 1.25rem;
           font-size: 1rem;
         }
-        
+
         .footer-col a {
           display: block;
           color: var(--text-muted);
           font-size: 0.9rem;
           padding: 0.375rem 0;
         }
-        
+
         .footer-col a:hover {
           color: var(--accent);
         }
-        
+
         .footer-bottom {
           padding: 1.5rem 0;
           text-align: center;
           color: var(--text-muted);
           font-size: 0.875rem;
         }
-        
+
         /* Responsive */
         @media (max-width: 1024px) {
           .hero-container {
             grid-template-columns: 1fr;
             text-align: center;
           }
-          
+
           .hero-description {
             margin: 0 auto 2rem;
           }
-          
+
           .hero-stats {
             justify-content: center;
           }
-          
+
           .hero-booking {
             max-width: 500px;
             margin: 0 auto;
           }
-          
+
           .cta-content {
             flex-direction: column;
             text-align: center;
             gap: 2rem;
           }
-          
+
           .footer-top {
             grid-template-columns: 1fr;
             text-align: center;
           }
-          
+
           .footer-brand {
             display: flex;
             flex-direction: column;
             align-items: center;
           }
-          
+
           .footer-links {
             grid-template-columns: repeat(3, 1fr);
           }
         }
-        
+
         @media (max-width: 768px) {
           .nav-links,
           .nav-actions {
             display: none;
           }
-          
+
           .mobile-menu-btn {
             display: block;
           }
-          
+
           .nav-links.active {
             display: flex;
             flex-direction: column;
@@ -1828,31 +1651,31 @@ export default function Home() {
             gap: 1rem;
             border-bottom: 1px solid var(--border);
           }
-          
+
           .hero {
             padding-top: 120px;
           }
-          
+
           .hero-title {
             font-size: 2rem;
           }
-          
+
           .hero-stats {
             flex-wrap: wrap;
           }
-          
+
           .form-row {
             grid-template-columns: 1fr;
           }
-          
+
           .cta-actions {
             flex-direction: column;
           }
-          
+
           .contact-grid {
             gap: 3rem;
           }
-          
+
           .footer-links {
             grid-template-columns: 1fr;
             gap: 2rem;
@@ -2129,8 +1952,8 @@ export default function Home() {
           font-size: 2.5rem;
         }
         .summary-vehicle strong { font-size: 1.1rem; }
-        .summary-vehicle p { 
-          color: var(--primary); 
+        .summary-vehicle p {
+          color: var(--primary);
           font-weight: 600;
           margin: 0;
         }
@@ -2219,9 +2042,9 @@ export default function Home() {
       {/* Mobile Sticky CTA */}
       <div className="mobile-sticky-cta">
         <div className="cta-text">
-          <span>Najam od <strong>€35/dan</strong></span>
+          <span>Vaš najam u Zadru</span>
         </div>
-        <a href="#vozila" className="btn btn-primary">Rezerviraj</a>
+        <a href="#pretraga" className="btn btn-primary">Odaberi datume</a>
       </div>
 
     </div>

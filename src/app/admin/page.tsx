@@ -20,7 +20,6 @@ import {
     Plus,
     Copy
 } from 'lucide-react'
-import { jsPDF } from 'jspdf'
 
 
 interface Booking {
@@ -58,6 +57,11 @@ interface Vehicle {
     category: string
     price_per_day: number
     available: boolean
+    model_year?: number
+    seats?: number
+    transmission?: string
+    fuel_type?: string
+    image_url?: string
     // Management fields
     mileage?: number
     registration_expiry?: string
@@ -96,10 +100,15 @@ export default function AdminPage() {
     const [error, setError] = useState('')
     const [loginLoading, setLoginLoading] = useState(false)
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
-    const isMasterAdmin = currentUserEmail === 'niko.kurta03@karoca-rentacar.hr'
+    const isMasterAdmin = isLoggedIn
     const [activeTab, setActiveTab] = useState<'bookings' | 'messages' | 'vehicles' | 'contract' | 'fleet' | 'promo' | 'api'>('bookings')
 
+    const [bookingSearch, setBookingSearch] = useState('')
+    const [statusFilter, setStatusFilter] = useState('all')
+    const [mutationPending, setMutationPending] = useState(false)
+    const statusLabels: Record<string, string> = { pending: 'Na čekanju', confirmed: 'Potvrđeno', completed: 'Završeno', cancelled: 'Otkazano' }
     const [bookings, setBookings] = useState<Booking[]>([])
+    const filteredBookings = bookings.filter(b => (statusFilter === 'all' || b.status === statusFilter) && [b.customer_name, b.customer_email, b.vehicle?.name || ''].join(' ').toLocaleLowerCase('hr').includes(bookingSearch.toLocaleLowerCase('hr')))
     const [messages, setMessages] = useState<ContactMessage[]>([])
     const [vehicles, setVehicles] = useState<Vehicle[]>([])
     const [loading, setLoading] = useState(false)
@@ -154,15 +163,19 @@ export default function AdminPage() {
         setError('')
 
         try {
-            const { error: authError } = await supabase.auth.signInWithPassword({
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             })
 
             if (authError) {
                 setError('Neuspješna prijava: ' + authError.message)
-            } else {
+            } else if (authData.user?.app_metadata?.role === 'admin') {
+                setCurrentUserEmail(authData.user.email ?? null)
                 setIsLoggedIn(true)
+            } else {
+                await supabase.auth.signOut()
+                setError('Ovaj račun nema ovlasti za administraciju.')
             }
         } catch (err: any) {
             setError('Došlo je do pogreške pri prijavi')
@@ -179,7 +192,7 @@ export default function AdminPage() {
     useEffect(() => {
         const checkSession = async () => {
             const { data: { session } } = await supabase.auth.getSession()
-            if (session) {
+            if (session?.user.app_metadata?.role === 'admin') {
                 setIsLoggedIn(true)
                 setCurrentUserEmail(session.user.email ?? null)
             }
@@ -187,7 +200,7 @@ export default function AdminPage() {
         checkSession()
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (session) {
+            if (session?.user.app_metadata?.role === 'admin') {
                 setIsLoggedIn(true)
                 setCurrentUserEmail(session.user.email ?? null)
             } else {
@@ -255,9 +268,18 @@ export default function AdminPage() {
 
     const saveVehicle = async () => {
         if (!selectedVehicle) return
+        if (!selectedVehicle.name.trim() || !Number.isFinite(selectedVehicle.price_per_day) || selectedVehicle.price_per_day <= 0 || (selectedVehicle.mileage ?? 0) < 0 || !selectedVehicle.transmission || !selectedVehicle.fuel_type || !Number.isInteger(selectedVehicle.seats) || selectedVehicle.seats! < 1 || selectedVehicle.seats! > 9) {
+            setError('Provjerite naziv, pozitivnu cijenu, kilometražu, mjenjač, gorivo i broj sjedala (1–9).'); return
+        }
         setSaving(true)
+        setError('')
         try {
-            const { error } = await supabase.from('vehicles').update({
+            const values = {
+                seats: selectedVehicle.seats,
+                transmission: selectedVehicle.transmission,
+                fuel_type: selectedVehicle.fuel_type,
+                model_year: selectedVehicle.model_year || null,
+                image_url: selectedVehicle.image_url || '/vehicles/suzuki-vitara.png',
                 name: selectedVehicle.name,
                 category: selectedVehicle.category,
                 price_per_day: selectedVehicle.price_per_day,
@@ -271,7 +293,10 @@ export default function AdminPage() {
                 cleanliness: selectedVehicle.cleanliness,
                 vehicle_status: selectedVehicle.vehicle_status,
                 license_plate: selectedVehicle.license_plate
-            }).eq('id', selectedVehicle.id)
+            }
+            const { error } = selectedVehicle.id
+                ? await supabase.from('vehicles').update(values).eq('id', selectedVehicle.id)
+                : await supabase.from('vehicles').insert({ ...values, available: false })
 
             if (error) throw error
 
@@ -280,30 +305,31 @@ export default function AdminPage() {
             alert('Promjene uspješno spremljene!')
         } catch (error: any) {
             console.error('Error saving vehicle:', error)
-            alert(`Greška pri spremanju: ${error.message || 'Nepoznata greška'}`)
+            setError('Vozilo nije spremljeno. Provjerite polja i ovlasti računa.')
         } finally {
             setSaving(false)
         }
     }
 
-    const updateBookingStatus = async (id: string, status: string) => {
-        await supabase.from('bookings').update({ status }).eq('id', id)
-        fetchData()
+    const runMutation = async (action: () => PromiseLike<{ error: { message: string } | null }>) => {
+        if (mutationPending) return
+        setMutationPending(true)
+        setError('')
+        try {
+            const { error } = await action()
+            if (error) throw error
+            await fetchData()
+        } catch {
+            setError('Promjena nije spremljena. Provjerite vezu i ovlasti računa pa pokušajte ponovno.')
+        } finally {
+            setMutationPending(false)
+        }
     }
-
-    const toggleVehicleAvailability = async (id: string, available: boolean) => {
-        await supabase.from('vehicles').update({ available: !available }).eq('id', id)
-        fetchData()
-    }
-
-    const markMessageAsRead = async (id: string) => {
-        await supabase.from('contact_messages').update({ read: true }).eq('id', id)
-        fetchData()
-    }
-
-    const deleteMessage = async (id: string) => {
-        await supabase.from('contact_messages').delete().eq('id', id)
-        fetchData()
+    const updateBookingStatus = (id: string, status: string) => runMutation(() => supabase.from('bookings').update({ status }).eq('id', id))
+    const toggleVehicleAvailability = (id: string, available: boolean) => runMutation(() => supabase.from('vehicles').update({ available: !available }).eq('id', id))
+    const markMessageAsRead = (id: string) => runMutation(() => supabase.from('contact_messages').update({ read: true }).eq('id', id))
+    const deleteMessage = (id: string) => {
+        if (window.confirm('Trajno izbrisati ovu poruku?')) runMutation(() => supabase.from('contact_messages').delete().eq('id', id))
     }
 
     // Promo code functions
@@ -341,14 +367,12 @@ export default function AdminPage() {
     }
 
     const togglePromoActive = async (id: string, currentActive: boolean) => {
-        await supabase.from('promo_codes').update({ active: !currentActive }).eq('id', id)
-        fetchData()
+        await runMutation(() => supabase.from('promo_codes').update({ active: !currentActive }).eq('id', id))
     }
 
     const deletePromoCode = async (id: string) => {
         if (!confirm('Jeste li sigurni da želite obrisati ovaj promo kod?')) return
-        await supabase.from('promo_codes').delete().eq('id', id)
-        fetchData()
+        await runMutation(() => supabase.from('promo_codes').delete().eq('id', id))
     }
 
     const copyToClipboard = (code: string) => {
@@ -364,7 +388,7 @@ export default function AdminPage() {
         }
         setCreatingKey(true)
         try {
-            const newKey = `karoca_${Math.random().toString(36).substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`
+            const newKey = `karoca_${Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('')}`
             const { error } = await supabase.from('api_keys').insert({
                 partner_name: newPartnerName.trim(),
                 key: newKey,
@@ -383,8 +407,7 @@ export default function AdminPage() {
 
     const deleteApiKey = async (id: string) => {
         if (!confirm('Jeste li sigurni da želite obrisati ovaj API ključ? Pristup partneru će biti odmah onemogućen.')) return
-        await supabase.from('api_keys').delete().eq('id', id)
-        fetchData()
+        await runMutation(() => supabase.from('api_keys').delete().eq('id', id))
     }
 
     const handleVehicleChange = (vehicleId: string) => {
@@ -399,8 +422,10 @@ export default function AdminPage() {
         }
     }
 
-    const generatePDF = () => {
+    const generatePDF = async () => {
         setGenerating(true)
+        try {
+        const { jsPDF } = await import('jspdf')
         const doc = new jsPDF()
         const vehicle = vehicles.find(v => v.id === contractForm.vehicleId)
         const today = new Date().toLocaleDateString('hr-HR')
@@ -414,7 +439,7 @@ export default function AdminPage() {
         doc.setFontSize(10)
         doc.setFont('helvetica', 'normal')
         doc.text('Obala kneza Branimira 1, 23000 Zadar, Hrvatska', 105, 27, { align: 'center' })
-        doc.text('Tel: +385 99 165 5885 | Email: info@karoca.hr | OIB: 12345678901', 105, 33, { align: 'center' })
+        doc.text('Tel: +385 99 165 5885 | Email: info@karoca-rentacar.hr', 105, 33, { align: 'center' })
 
         doc.setLineWidth(0.5)
         doc.line(20, 38, 190, 38)
@@ -422,7 +447,7 @@ export default function AdminPage() {
         // Title
         doc.setFontSize(16)
         doc.setFont('helvetica', 'bold')
-        doc.text('UGOVOR O NAJMU MOTORNOG VOZILA', 105, 48, { align: 'center' })
+        doc.text('NACRT UGOVORA O NAJMU VOZILA', 105, 48, { align: 'center' })
 
         doc.setFontSize(10)
         doc.setFont('helvetica', 'normal')
@@ -584,7 +609,9 @@ export default function AdminPage() {
         doc.text('Stranica 2 od 2', 105, 290, { align: 'center' })
 
         doc.save(`Ugovor_${contractNumber}_${contractForm.driverName.replace(/\s/g, '_')}.pdf`)
-        setGenerating(false)
+        } catch {
+            setError('PDF nije izrađen. Pokušajte ponovno.')
+        } finally { setGenerating(false) }
     }
 
     const resetContractForm = () => {
@@ -604,12 +631,15 @@ export default function AdminPage() {
         return (
             <div className="login-page">
                 <div className="login-card">
-                    <h1>🚗 Karoca Admin</h1>
-                    <p>Prijavite se s emailom i lozinkom</p>
+                    <a href="/" className="login-logo"><img src="/karoca-logo-new.png" alt="Karoca Rent A Car" width="180" /></a>
+                    <h1>Dobro došli natrag.</h1>
+                    <p>Prijavite se za upravljanje vozilima i rezervacijama.</p>
                     <form onSubmit={handleLogin}>
                         <div className="input-group">
                             <input
                                 type="email"
+                                aria-label="Email adresa"
+                                autoComplete="username"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="Email..."
@@ -620,13 +650,15 @@ export default function AdminPage() {
                         <div className="input-group">
                             <input
                                 type="password"
+                                aria-label="Lozinka"
+                                autoComplete="current-password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Lozinka..."
                                 required
                             />
                         </div>
-                        {error && <div className="error">{error}</div>}
+                        {error && <div className="error" role="alert">{error}</div>}
                         <button type="submit" disabled={loginLoading}>
                             {loginLoading ? (
                                 <span className="loader-container">
@@ -637,15 +669,19 @@ export default function AdminPage() {
                     </form>
                 </div>
                 <style jsx>{`
-          .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%); }
+          .login-logo { display: inline-block; background: #07334a; width: 180px; height: 72px; overflow: hidden; border-radius: 8px; margin-bottom: 2rem; }
+          .login-logo img { width: 180px; height: 72px; object-fit: cover; }
+          .login-card { width: min(460px, calc(100% - 32px)); }
+          h1 { font-size: 1.75rem; }
+          .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #091528; }
           .login-card { background: rgba(255,255,255,0.05); padding: 3rem; border-radius: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
           h1 { margin-bottom: 0.5rem; color: white; }
           p { color: #888; margin-bottom: 2rem; }
           input { width: 100%; padding: 1rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; background: rgba(255,255,255,0.05); color: white; font-size: 1rem; margin-bottom: 1rem; }
-          button { width: 100%; padding: 1rem; background: linear-gradient(135deg, #e94560 0%, #f5af19 100%); border: none; border-radius: 10px; color: white; font-weight: 600; cursor: pointer; }
+          button { width: 100%; padding: 1rem; background: #2765e8; border: none; border-radius: 10px; color: white; font-weight: 600; cursor: pointer; }
           button:disabled { opacity: 0.7; cursor: not-allowed; }
           .loader-container { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-          .error { color: #e94560; margin-bottom: 1rem; }
+          .error { color: #75a7ff; margin-bottom: 1rem; }
           .spin { animation: spin 1s linear infinite; }
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         `}</style>
@@ -654,11 +690,11 @@ export default function AdminPage() {
     }
 
     return (
-        <div className="admin">
+        <div className="admin" data-theme="dark">
             <nav className="admin-nav">
                 <div className="nav-brand">
                     🚗 Karoca Admin
-                    {isMasterAdmin && <span className="master-badge">Master Admin</span>}
+                    {isMasterAdmin && <span className="master-badge">Administrator</span>}
                 </div>
                 <div className="nav-tabs">
                     {/* ... existing buttons ... */}
@@ -693,6 +729,23 @@ export default function AdminPage() {
             </nav>
 
             <main className="admin-content">
+                <header className="workspace-header">
+                    <div><p>KAROCA / UPRAVLJANJE</p><h1>{({ bookings: 'Rezervacije', messages: 'Poruke klijenata', vehicles: 'Ponuda vozila', contract: 'Ugovor o najmu', fleet: 'Upravljanje flotom', promo: 'Promotivni kodovi', api: 'Partnerski pristup' })[activeTab]}</h1></div>
+                    <a href="/">Otvori web stranicu ↗</a>
+                </header>
+                {error && <div className="admin-error" role="alert">{error}<button onClick={fetchData}>Pokušaj ponovno</button></div>}
+                {mutationPending && <p role="status">Spremanje promjene…</p>}
+                {activeTab === 'bookings' && !loading && !error && <>
+                    <div className="booking-metrics">
+                        <div><span>Ukupno upita</span><strong>{bookings.length}</strong></div>
+                        <div><span>Čeka odgovor</span><strong>{bookings.filter(b => b.status === 'pending').length}</strong></div>
+                        <div><span>Potvrđene rezervacije</span><strong>{bookings.filter(b => b.status === 'confirmed').length}</strong></div>
+                    </div>
+                    <div className="booking-toolbar">
+                        <input aria-label="Pretraži rezervacije" placeholder="Klijent, email ili vozilo…" value={bookingSearch} onChange={e => setBookingSearch(e.target.value)} />
+                        <select aria-label="Status rezervacije" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="all">Svi statusi</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+                    </div>
+                </>}
                 {loading ? (
                     <div className="loading"><Loader2 className="spin" size={40} /></div>
                 ) : activeTab === 'bookings' ? (
@@ -703,7 +756,8 @@ export default function AdminPage() {
                                 <tr><th>Datum</th><th>Klijent</th><th>Vozilo</th><th>Period</th><th>Karakteristike / Dodaci</th><th>Status</th><th>Akcije</th></tr>
                             </thead>
                             <tbody>
-                                {bookings.map((b) => (
+                                {filteredBookings.length === 0 && <tr><td colSpan={7} className="empty-table">{bookings.length ? 'Nema rezervacija koje odgovaraju pretrazi.' : 'Još nema rezervacija. Novi upiti pojavit će se ovdje.'}</td></tr>}
+                                {filteredBookings.map((b) => (
                                     <tr key={b.id}>
                                         <td>{new Date(b.created_at).toLocaleDateString('hr')}</td>
                                         <td>
@@ -718,10 +772,10 @@ export default function AdminPage() {
                                         <td>
                                             {b.pickup_date} <br /> ↓ <br /> {b.return_date}
                                         </td>
-                                        <td title={`DEBUG RAW: ${JSON.stringify(b.selected_extras)}`}>
+                                        <td>
                                             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', maxWidth: '200px' }}>
                                                 {/* POLOG - High visibility */}
-                                                {(b.deposit_confirmed) && <span style={{ fontSize: '0.7rem', background: '#f5af19', color: '#000', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>POLOG OK</span>}
+                                                {(b.deposit_confirmed) && <span style={{ fontSize: '0.7rem', background: '#f5af19', color: '#000', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>UVJET POLOGA PRIHVAĆEN</span>}
 
                                                 {/* Insurance - Green */}
                                                 {(b.selected_extras?.includes('cdw')) && <span style={{ fontSize: '0.7rem', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>Kasko</span>}
@@ -752,7 +806,7 @@ export default function AdminPage() {
                                             )}
                                         </td>
                                         <td>
-                                            <span className={`status status-${b.status}`}>{b.status}</span>
+                                            <span className={`status status-${b.status}`}>{statusLabels[b.status] || b.status}</span>
                                         </td>
                                         <td>
                                             <div className="actions">
@@ -789,7 +843,7 @@ export default function AdminPage() {
                                                     });
                                                     setActiveTab('contract');
                                                 }}><FileText size={14} /></button>
-                                                {b.status === 'pending' && (<><button className="btn-confirm" onClick={() => updateBookingStatus(b.id, 'confirmed')}><Check size={14} /></button><button className="btn-cancel" onClick={() => updateBookingStatus(b.id, 'cancelled')}><X size={14} /></button></>)}
+                                                {b.status === 'pending' && (<><button className="btn-confirm" aria-label="Potvrdi rezervaciju" disabled={mutationPending} onClick={() => updateBookingStatus(b.id, 'confirmed')}><Check size={14} /></button><button className="btn-cancel" aria-label="Otkaži rezervaciju" disabled={mutationPending} onClick={() => updateBookingStatus(b.id, 'cancelled')}><X size={14} /></button></>)}
                                             </div>
                                         </td>
                                     </tr>
@@ -809,7 +863,7 @@ export default function AdminPage() {
                                         <td>{m.name}</td>
                                         <td>{m.email}</td>
                                         <td className="message-cell">{m.message}</td>
-                                        <td><div className="actions">{!m.read && (<button className="btn-read" onClick={() => markMessageAsRead(m.id)}><Eye size={14} /></button>)}<button className="btn-delete" onClick={() => deleteMessage(m.id)}><Trash2 size={14} /></button></div></td>
+                                        <td><div className="actions">{!m.read && (<button className="btn-read" aria-label="Označi poruku pročitanom" disabled={mutationPending} onClick={() => markMessageAsRead(m.id)}><Eye size={14} /></button>)}<button className="btn-delete" aria-label="Izbriši poruku" disabled={mutationPending} onClick={() => deleteMessage(m.id)}><Trash2 size={14} /></button></div></td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -824,7 +878,7 @@ export default function AdminPage() {
                                 {vehicles.map((v) => (
                                     <tr key={v.id}>
                                         <td>{v.name}</td>
-                                        <td><strong style={{ color: '#e94560' }}>{v.license_plate || '-'}</strong></td>
+                                        <td><strong style={{ color: '#75a7ff' }}>{v.license_plate || '-'}</strong></td>
                                         <td>{v.category}</td>
                                         <td>€{v.price_per_day}</td>
                                         <td><button className={`toggle ${v.available ? 'on' : 'off'}`} onClick={() => toggleVehicleAvailability(v.id, v.available)}>{v.available ? 'Dostupno' : 'Nedostupno'}</button></td>
@@ -836,20 +890,38 @@ export default function AdminPage() {
                 ) : activeTab === 'fleet' ? (
                     <div className="table-container">
                         <h2><Settings size={20} /> Upravljanje flotom ({vehicles.length})</h2>
+                        {!selectedVehicle && <button className="reset-btn" onClick={() => setSelectedVehicle({ id: '', name: 'Suzuki Vitara 2026', category: 'SUV', price_per_day: 0, available: false, model_year: 2026, seats: 5, transmission: '', fuel_type: '', mileage: 0, image_url: '/vehicles/suzuki-vitara.png', vehicle_status: 'Spreman' })}><Plus size={16} /> Dodaj vozilo</button>}
 
                         {selectedVehicle ? (
                             <div className="fleet-edit">
                                 <div className="fleet-edit-header">
-                                    <h3>Uređivanje: {selectedVehicle.name}</h3>
+                                    <h3>{selectedVehicle.id ? "Uređivanje vozila" : "Novo vozilo"}</h3>
                                     <button className="reset-btn" onClick={() => setSelectedVehicle(null)}>
                                         <X size={16} /> Odustani
                                     </button>
                                 </div>
 
                                 <div className="fleet-form-grid">
+                                    {!selectedVehicle.id && <p className="full-width">Novo vozilo ostaje skriveno iz javne ponude dok mu u kartici Vozila ne uključite dostupnost. Unesite potvrđenu cijenu.</p>}
                                     <div className="input-group full-width">
                                         <label>Naziv vozila</label>
                                         <input type="text" value={selectedVehicle.name || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, name: e.target.value })} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="vehicle-transmission">Mjenjač</label>
+                                        <select id="vehicle-transmission" value={selectedVehicle.transmission || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, transmission: e.target.value })}><option value="">Odaberite</option><option value="Manual">Ručni</option><option value="Automatik">Automatski</option></select>
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="vehicle-fuel">Gorivo</label>
+                                        <select id="vehicle-fuel" value={selectedVehicle.fuel_type || ''} onChange={e => setSelectedVehicle({ ...selectedVehicle, fuel_type: e.target.value })}><option value="">Odaberite</option><option>Benzin</option><option>Dizel</option><option>Hibrid</option><option>Električni</option></select>
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="vehicle-seats">Broj sjedala</label>
+                                        <input id="vehicle-seats" type="number" min="1" max="9" value={selectedVehicle.seats || 5} onChange={e => setSelectedVehicle({ ...selectedVehicle, seats: Number(e.target.value) })} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="vehicle-year">Godište</label>
+                                        <input id="vehicle-year" type="number" min="2000" max="2100" value={selectedVehicle.model_year || 2026} onChange={e => setSelectedVehicle({ ...selectedVehicle, model_year: Number(e.target.value) })} />
                                     </div>
                                     <div className="input-group">
                                         <label>Kategorija</label>
@@ -862,7 +934,7 @@ export default function AdminPage() {
                                     </div>
                                     <div className="input-group">
                                         <label>Cijena po danu (€)</label>
-                                        <input type="number" value={selectedVehicle.price_per_day || 0} onChange={e => setSelectedVehicle({ ...selectedVehicle, price_per_day: Number(e.target.value) })} />
+                                        <input type="number" min="0.01" step="0.01" aria-label="Cijena po danu u eurima" value={selectedVehicle.price_per_day || 0} onChange={e => setSelectedVehicle({ ...selectedVehicle, price_per_day: Number(e.target.value) })} />
                                     </div>
                                     <div className="input-group">
                                         <label>Registracija (tablica)</label>
@@ -941,14 +1013,14 @@ export default function AdminPage() {
                                     {vehicles.map((v) => (
                                         <tr key={v.id}>
                                             <td><strong>{v.name}</strong><br /><small style={{ color: '#888' }}>{v.color || '-'}</small></td>
-                                            <td><strong style={{ color: '#e94560' }}>{v.license_plate || '-'}</strong></td>
+                                            <td><strong style={{ color: '#75a7ff' }}>{v.license_plate || '-'}</strong></td>
                                             <td>{v.mileage?.toLocaleString() || 0} km</td>
                                             <td>{v.registration_expiry ? new Date(v.registration_expiry).toLocaleDateString('hr') : '-'}</td>
                                             <td>{v.kasko_expiry ? new Date(v.kasko_expiry).toLocaleDateString('hr') : '-'}</td>
                                             <td>{v.tire_type || '-'}</td>
                                             <td><span className={`status ${v.cleanliness === 'Oprano' ? 'status-confirmed' : 'status-pending'}`}>{v.cleanliness || '-'}</span></td>
                                             <td><span className={`status ${v.vehicle_status === 'Spreman' ? 'status-confirmed' : v.vehicle_status === 'U najmu' ? 'status-pending' : 'status-cancelled'}`}>{v.vehicle_status || '-'}</span></td>
-                                            <td><button className="btn-read" onClick={() => setSelectedVehicle(v)}><Edit2 size={14} /></button></td>
+                                            <td><button className="btn-read" aria-label="Uredi vozilo" onClick={() => setSelectedVehicle(v)}><Edit2 size={14} /></button></td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -1034,7 +1106,7 @@ export default function AdminPage() {
                         </div>
 
                         <section style={{ marginBottom: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '1.25rem' }}>
-                            <h3 style={{ fontSize: '0.875rem', color: '#e94560', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agent / Zaposlenik</h3>
+                            <h3 style={{ fontSize: '0.875rem', color: '#75a7ff', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agent / Zaposlenik</h3>
                             <div className="form-grid">
                                 <input
                                     className="full-width"
@@ -1248,7 +1320,7 @@ export default function AdminPage() {
         .master-badge { font-size: 0.7rem; background: #f5af19; color: black; padding: 0.2rem 0.6rem; border-radius: 20px; text-transform: uppercase; }
         .nav-tabs { display: flex; gap: 0.5rem; }
         .nav-tabs button { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.25rem; background: transparent; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #888; cursor: pointer; }
-        .nav-tabs button.active { background: linear-gradient(135deg, #e94560 0%, #f5af19 100%); border-color: transparent; color: white; }
+        .nav-tabs button.active { background: #2765e8; border-color: transparent; color: white; }
         .nav-user { display: flex; align-items: center; gap: 1rem; color: #888; font-size: 0.9rem; }
         .logout-btn { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.25rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #888; cursor: pointer; }
 
@@ -1300,16 +1372,16 @@ export default function AdminPage() {
         .reset-btn { padding: 0.5rem 1rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #888; cursor: pointer; }
         .contract-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
         section { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 1.25rem; }
-        h3 { font-size: 0.875rem; color: #e94560; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        h3 { font-size: 0.875rem; color: #75a7ff; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
         .form-grid input, .form-grid select { padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; font-size: 0.9rem; }
-        .form-grid input:focus, .form-grid select:focus { outline: none; border-color: #e94560; }
+        .form-grid input:focus, .form-grid select:focus { outline: none; border-color: #75a7ff; }
         .form-grid input::placeholder { color: #666; }
         .full-width { grid-column: 1 / -1; }
         .input-group { display: flex; flex-direction: column; gap: 0.25rem; }
         .input-group label { font-size: 0.75rem; color: #888; }
         .input-group.total input { background: rgba(233, 69, 96, 0.2); font-weight: 700; font-size: 1.25rem; text-align: center; }
-        .generate-btn { width: 100%; padding: 1.25rem; background: linear-gradient(135deg, #e94560 0%, #f5af19 100%); border: none; border-radius: 12px; color: white; font-size: 1.125rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+        .generate-btn { width: 100%; padding: 1.25rem; background: #2765e8; border: none; border-radius: 12px; color: white; font-size: 1.125rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
         .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         @media (max-width: 1200px) { .contract-grid { grid-template-columns: 1fr; } }
         @media (max-width: 768px) { .nav-tabs { flex-wrap: wrap; } .form-grid { grid-template-columns: 1fr; } }
@@ -1320,9 +1392,43 @@ export default function AdminPage() {
         .fleet-edit-header h3 { font-size: 1.25rem; color: white; }
         .fleet-form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
         .fleet-form-grid .input-group input, .fleet-form-grid .input-group select { padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; font-size: 0.9rem; width: 100%; }
-        .fleet-form-grid .input-group input:focus, .fleet-form-grid .input-group select:focus { outline: none; border-color: #e94560; }
+        .fleet-form-grid .input-group input:focus, .fleet-form-grid .input-group select:focus { outline: none; border-color: #75a7ff; }
         @media (max-width: 1024px) { .fleet-form-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 768px) { .fleet-form-grid { grid-template-columns: 1fr; } }
+
+        .admin { background: #091528; }
+        .admin-nav { position: fixed; inset: 0 auto 0 0; width: 244px; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 2.5rem; padding: 2rem 1rem; background: #0d1e38; border-right: 1px solid #22344f; }
+        .nav-brand { flex-wrap: wrap; padding: 0 0.5rem; }
+        .nav-tabs { flex-direction: column; }
+        .nav-tabs button { font-size: .9375rem; color: #b6c6dc; border: 0; border-radius: 8px; }
+        .nav-tabs button.active { background: #2765e8; }
+        .nav-user { margin-top: auto; flex-direction: column; align-items: stretch; overflow-wrap: anywhere; }
+        .nav-user span { font-size: .875rem; color: #b6c6dc; }
+        .admin-content { margin-left: 244px; padding: 2.5rem; min-width: 0; }
+        .workspace-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem; }
+        .workspace-header p { color: #8fa9cc; font-size: .75rem; letter-spacing: .12em; margin-bottom: .5rem; }
+        .workspace-header h1 { font-size: 2rem; line-height: 1.2; }
+        .workspace-header a { color: #bcd4ff; font-size: .875rem; }
+        .booking-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+        .booking-metrics > div { padding: 1.5rem; border: 1px solid #263852; border-radius: 12px; background: #10213a; }
+        .booking-metrics span { display: block; font-size: .875rem; color: #a9bed9; }
+        .booking-metrics strong { display: block; font-size: 2rem; margin-top: .65rem; }
+        .booking-toolbar { display: flex; gap: .75rem; margin-bottom: 1.5rem; }
+        .booking-toolbar input, .booking-toolbar select { background: #10213a; border: 1px solid #344866; color: white; border-radius: 8px; padding: .875rem; font-size: 1rem; min-width: 0; }
+        .booking-toolbar input { flex: 1; }
+        .table-container { background: #10213a; border: 1px solid #263852; border-radius: 12px; overflow-x: auto; }
+        th { color: #b7c8df; font-size: .875rem; }
+        td { font-size: .9375rem; }
+        small, .input-group label, .status { font-size: .875rem; }
+        .message-cell { white-space: normal; overflow-wrap: anywhere; }
+        .empty-table { text-align: center; padding: 3rem 1rem; color: #a9bed9; }
+        .admin-error { border: 1px solid #ad4e5b; background: #381e2d; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .admin-error button { margin-left: 1rem; padding: .5rem .75rem; cursor: pointer; }
+        button:disabled { opacity: .55; cursor: wait; }
+        button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid #8cbcff; outline-offset: 3px; }
+        .actions button { min-width: 40px; min-height: 40px; justify-content: center; }
+        @media (max-width: 1100px) { .admin-nav { position: static; width: auto; gap: 1rem; padding: 1rem; } .nav-tabs { flex-direction: row; overflow-x: auto; flex-wrap: nowrap; } .nav-tabs button { flex-shrink: 0; } .nav-user { flex-direction: row; align-items: center; justify-content: space-between; } .admin-content { margin-left: 0; padding: 1.5rem; } }
+        @media (max-width: 600px) { .admin-content { padding: 1rem; } .workspace-header { align-items: flex-start; flex-direction: column; } .workspace-header h1 { font-size: 1.65rem; } .booking-metrics { gap: .5rem; } .booking-metrics > div { padding: .875rem; } .booking-metrics span { line-height: 1.4; } .booking-toolbar { flex-direction: column; } .table-container { padding: 1rem; } }
       `}</style>
 
         </div >
